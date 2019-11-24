@@ -1,0 +1,31 @@
+credentials:
+  - name:
+      configs
+
+profiles:
+  - registry:
+      storage:
+        type: replicated
+        storages:
+          - type: redis
+              credential: credential_name
+              capacity: unlimited_by_default
+          - type: mongo
+              credential: credential_name
+              database: db_name
+              collection: collection_name
+
+
+storages:
+  - redis:
+
+  - storage_name:
+      type: [memory / redis / cluster / replica]
+      credential: credential_name
+      crypter: crypter_name
+
+crypters: # Crypting can be achieved by serialization, the key to generate is out of the scope of this feature.
+#  - crypter_name:
+#      type: AES
+#      credential: credential_name
+
