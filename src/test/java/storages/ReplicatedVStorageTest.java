@@ -16,13 +16,12 @@ class ReplicatedVStorageTest implements StorageTest<ReplicatedVStorage<String, S
 			}
 		}
 
-		IStorage<String, String> result = null;
-//				new ReplicatedVStorage<>(SimpleKeyGeneratorFactory.make(String.class),
-//				new MemoryStorage<String, String>(),
-//				new MemoryStorage<String, String>(),
-//				pairs,
-//				maxSize
-//		);
+		IStorage<String, String> result =
+				new ReplicatedVStorage<>(pairs, maxSize,
+						SimpleKeyGeneratorFactory.make(String.class),
+						new MemoryStorage<String, String>(),
+						new MemoryStorage<String, String>()
+				);
 
 		return result;
 	}

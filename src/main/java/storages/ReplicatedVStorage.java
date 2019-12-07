@@ -26,12 +26,8 @@ public class ReplicatedVStorage<K, V> implements IStorage<K, V>, ISetKeyGenerato
 			throw new NotAvailableStorage("Number of underlying storage must be greater than 0");
 		}
 		this.storages = Arrays.asList(storages);
-		Optional<Long> availableSpace = this.storages.stream().map(s -> s.capacity()).reduce((r, v) -> r + v);
-		if (availableSpace.get() < 1L) {
-			throw new NotAvailableStorage("There is no available space in the storage");
-		}
 		Optional<IStorage<K, V>> firstUnlimited = this.storages.stream().filter(s -> s.capacity() != NO_MAX_SIZE).findFirst();
-		if (!firstUnlimited.isPresent()) {
+		if (!firstUnlimited.isEmpty()) {
 			throw new IllegalStateException("All of the underlying storage must have unbounded capacity");
 		}
 		if (maxCapacity < 1 && maxCapacity != NO_MAX_SIZE) {

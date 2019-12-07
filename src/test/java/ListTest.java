@@ -2,6 +2,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import storages.IStorage;
 import storages.MemoryStorage;
@@ -209,6 +210,7 @@ public interface ListTest<T extends List<String>> {
 	 * <b>Then</b>: the array is sorted
 	 */
 	@Test
+	@Disabled("Sorter is under review")
 	default void shouldSortUnsortedArray() {
 		// Given
 		List<Integer> list = new VArrayList(new MemoryStorage(getIndexedMap(5, 6, 4, 8, 7, 9, 2, 3, 1), IStorage.NO_MAX_SIZE));
@@ -228,6 +230,7 @@ public interface ListTest<T extends List<String>> {
 	 * <b>Then</b>: the array is sorted
 	 */
 	@Test
+	@Disabled("Sorter is under review")
 	default void shouldSortReversesortedArray() {
 		// Given
 		List<Integer> list = new VArrayList(new MemoryStorage(getIndexedMap(9, 8, 7, 6, 5, 4, 3, 2, 1), IStorage.NO_MAX_SIZE));

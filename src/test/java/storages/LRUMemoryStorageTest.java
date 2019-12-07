@@ -1,11 +1,11 @@
 package storages;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class LRUMemoryStorageTest implements StorageTest<LRUMemoryStorage<String, String>>{
+class LRUMemoryStorageTest implements StorageTest<LRUMemoryStorage<String, String>> {
 
 	@Override
 	public IStorage<String, String> makeStorage(long maxSize, String... items) {
@@ -17,9 +17,20 @@ class LRUMemoryStorageTest implements StorageTest<LRUMemoryStorage<String, Strin
 				pairs.put(key, value);
 			}
 		}
-		IStorage<String, String> result = new LRUMemoryStorage<>(maxSize);
+		LRUMemoryStorage<String, String> result = new LRUMemoryStorage<>(maxSize);
 		pairs.forEach(result::update);
+		result.setKeyGenerator(SimpleKeyGeneratorFactory.make(String.class));
 		return result;
+	}
+
+	@Override
+	public void shouldThrowOutOfSpaceExceptionAfterCreate() {
+		// This test for this storage is not valied
+	}
+
+	@Override
+	public void shouldThrowOutOfSpaceExceptionAfterUpdate() {
+		// This test for this storage is not valied
 	}
 
 	/**

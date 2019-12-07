@@ -6,15 +6,18 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class LRUMemoryStorage<K, V> implements IStorage<K, V>, ISetKeyGenerator<K>{
+public class LRUMemoryStorage<K, V> implements IStorage<K, V>, ISetKeyGenerator<K> {
 
-	private static final int DEFAULT_RETENTION_IN_MS = -1;
+	private static final int NO_RETENTION_TIME = -1;
 	private Supplier<K> keyGenerator = null;
 	private int retentionInMs;
 	private Long capacity = NO_MAX_SIZE;
 	private LinkedHashMap<K, Item> map = new LinkedHashMap<>() {
 		@Override
 		protected boolean removeEldestEntry(Map.Entry<K, Item> eldest) {
+			if (LRUMemoryStorage.this.capacity == IStorage.NO_MAX_SIZE) {
+				return false;
+			}
 			return LRUMemoryStorage.this.capacity < this.size();
 		}
 	};
@@ -26,7 +29,7 @@ public class LRUMemoryStorage<K, V> implements IStorage<K, V>, ISetKeyGenerator<
 
 	public LRUMemoryStorage(Long capacity) {
 		this.capacity = capacity;
-		this.retentionInMs = DEFAULT_RETENTION_IN_MS;
+		this.retentionInMs = NO_RETENTION_TIME;
 	}
 
 	public LRUMemoryStorage(int retentionInMs) {
@@ -61,7 +64,7 @@ public class LRUMemoryStorage<K, V> implements IStorage<K, V>, ISetKeyGenerator<
 			return null;
 		}
 		V result = item.value;
-		if (this.retentionInMs < 0) {
+		if (this.retentionInMs == NO_RETENTION_TIME) {
 			return result;
 		}
 		long elapsed = System.currentTimeMillis() - item.created;
@@ -85,7 +88,19 @@ public class LRUMemoryStorage<K, V> implements IStorage<K, V>, ISetKeyGenerator<
 
 	@Override
 	public boolean has(Object key) {
-		return this.map.containsKey(key);
+		if (!this.map.containsKey(key)) {
+			return false;
+		}
+		if (this.retentionInMs == NO_RETENTION_TIME) {
+			return true;
+		}
+		Item item = this.map.get(key);
+		long elapsed = System.currentTimeMillis() - item.created;
+		if (this.retentionInMs < elapsed) {
+			this.map.remove(key);
+			return false;
+		}
+		return true;
 	}
 
 	@Override
@@ -95,7 +110,10 @@ public class LRUMemoryStorage<K, V> implements IStorage<K, V>, ISetKeyGenerator<
 
 	@Override
 	public boolean isFull() {
-		return false;
+		if (this.capacity == IStorage.NO_MAX_SIZE) {
+			return false;
+		}
+		return this.capacity() <= this.entries();
 	}
 
 	@Override
@@ -106,10 +124,10 @@ public class LRUMemoryStorage<K, V> implements IStorage<K, V>, ISetKeyGenerator<
 	@Override
 	public void swap(K key1, K key2) {
 		if (!this.has(key1)) {
-			throw new KeyNotFoundException("key" + key1.toString() + " does not exists.");
+			throw new KeyNotFoundException("key " + key1.toString() + " does not exists.");
 		}
 		if (!this.has(key2)) {
-			throw new KeyNotFoundException("key" + key2.toString() + " does not exists.");
+			throw new KeyNotFoundException("key " + key2.toString() + " does not exists.");
 		}
 		this.map.put(key1, this.map.put(key2, this.map.get(key1)));
 	}
@@ -118,6 +136,7 @@ public class LRUMemoryStorage<K, V> implements IStorage<K, V>, ISetKeyGenerator<
 	public Iterator<Map.Entry<K, V>> iterator() {
 		return new Iterator<Map.Entry<K, V>>() {
 			Iterator<Map.Entry<K, Item>> iterator = LRUMemoryStorage.this.map.entrySet().iterator();
+
 			@Override
 			public boolean hasNext() {
 				return this.iterator.hasNext();

@@ -160,7 +160,7 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldBePushed() {
 		// Given
-		Deque<String> deque = makeDeque("v2", "v3");
+		Deque<String> deque = makeDeque("v1", "v2");
 
 		// When
 		deque.push("v3");

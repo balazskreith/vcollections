@@ -74,7 +74,7 @@ class CachedStorageTest implements StorageTest<CachedStorage<String, String>> {
 			cachedStorage.update("k1", "nv1");
 
 			// Then
-			assertEquals("v1", cachedStorage.read("k1"), configuration);
+			assertEquals("nv1", cachedStorage.read("k1"), configuration);
 		});
 	}
 
