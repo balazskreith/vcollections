@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'maven'
+    id 'maven-publish'
 }
 
 group 'wobserver'
@@ -34,3 +35,20 @@ wrapper {
     distributionType = Wrapper.DistributionType.ALL
 }
 
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/balazskreith/vcollections")
+            credentials {
+                username = System.getenv("USERNAME")
+                password = System.getenv("PASSWORD")
+            }
+        }
+    }
+    publications {
+        gpr(MavenPublication) {
+            from(components.java)
+        }
+    }
+}
