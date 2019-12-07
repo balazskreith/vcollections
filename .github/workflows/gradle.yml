@@ -1,4 +1,4 @@
-name: Java CI
+name: Compile and Deploy
 
 on: [push]
 
@@ -15,3 +15,8 @@ jobs:
         java-version: 1.12
     - name: Build with Gradle
       run: ./gradlew build
+    - name: Packing
+      run: ./gradlew publish
+      env: 
+        USERNAME: balazskreith
+        PASSWORD: ${{ secrets.GITHUB_TOKEN }}
