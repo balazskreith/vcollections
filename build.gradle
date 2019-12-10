@@ -46,15 +46,12 @@ publishing {
             }
         }
     }
-    afterEvaluate {
-        publications {
-            libJar(MavenPublication) {
-                from components["java"]
-                artifact(tasks["sourcesJar"])
-                pom {
-                    description.set("repro of issue uploading sources jar to github package registry via gradle")
-                }
-            }
+    publications {
+        register("appupdaterPlugin", MavenPublication::class.java) {
+            groupId = "com.wobserver"
+            artifactId = "vcollections"
+            version = "0.7.0"
+            from(components["java"])
         }
     }
 }
