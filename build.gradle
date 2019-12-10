@@ -46,9 +46,15 @@ publishing {
             }
         }
     }
-    publications {
-        gpr(MavenPublication) {
-            from(components.java)
+    afterEvaluate {
+        publications {
+            libJar(MavenPublication) {
+                from components["java"]
+                artifact(tasks["sourcesJar"])
+                pom {
+                    description.set("repro of issue uploading sources jar to github package registry via gradle")
+                }
+            }
         }
     }
 }
