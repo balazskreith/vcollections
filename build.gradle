@@ -41,8 +41,8 @@ publishing {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/balazskreith/vcollections")
             credentials {
-                username = System.getenv("USERNAME")
-                password = System.getenv("PASSWORD")
+                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("PASSWORD")
             }
         }
     }
