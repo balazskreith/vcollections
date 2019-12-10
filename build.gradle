@@ -47,11 +47,8 @@ publishing {
         }
     }
     publications {
-        register("appupdaterPlugin", MavenPublication::class.java) {
-            groupId = "com.wobserver"
-            artifactId = "vcollections"
-            version = "0.7.0"
-            from(components["java"])
+        gpr(MavenPublication) {
+            from(components.java)
         }
     }
 }
