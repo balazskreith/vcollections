@@ -16,7 +16,7 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build
     - name: Packing
-      run: ./gradlew publish
       env: 
-        USERNAME: balazskreith
-        PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        GPR_USER: ${{ secrets.GPR_USER }}
+        GPR_API_KEY: ${{ secrets.GITHUB_TOKEN }}
+      run: ./gradlew publish
