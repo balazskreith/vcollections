@@ -35,21 +35,34 @@ wrapper {
     distributionType = Wrapper.DistributionType.ALL
 }
 
-publishing {
+uploadArchives {
     repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/balazskreith/vcollections")
-            credentials {
-                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-                password = project.findProperty("gpr.key") ?: System.getenv("PASSWORD")
+        mavenDeployer {
+            repository(url: "https://nexus.wobserver.io") {
+                authentication(userName: "admin", password: "admin")
             }
-        }
-    }
-    publications {
-        gpr(MavenPublication) {
-            from(components.java)
+            pom.version = "0.1.5"
+            pom.artifactId = "vcollections"
+            pom.groupId = "com.wobserver"
         }
     }
 }
+
+//publishing {
+//    repositories {
+//        maven {
+//            name = "GitHubPackages"
+//            url = uri("https://maven.pkg.github.com/balazskreith/vcollections")
+//            credentials {
+//                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+//                password = project.findProperty("gpr.key") ?: System.getenv("PASSWORD")
+//            }
+//        }
+//    }
+//    publications {
+//        gpr(MavenPublication) {
+//            from(components.java)
+//        }
+//    }
+//}
 
