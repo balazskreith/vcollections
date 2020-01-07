@@ -16,4 +16,5 @@ jobs:
     - name: Build with Gradle
       run: |
         ./gradlew build
-        ./gradlew -Pgpr.user=balazskreith -Pgpr.key=${{ secrets.GITHUB_TOKEN }} publish
+        ./gradlew upload       
+#        ./gradlew -Pgpr.user=balazskreith -Pgpr.key=${{ secrets.GITHUB_TOKEN }} publish
