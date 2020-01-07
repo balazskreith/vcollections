@@ -1,0 +1,13 @@
+// Change storage to restfuls, so IREST will bethe interface, and REST clients will be the vcollections.storages
+
+Using definable collectors and providable list for cases where the temporary lists during the operations are very large!
+
+Figure out the logging
+
+introduce transactions for batched create, update, and delete operations so clusters are more safe with those.
+
+Integrity checker for different virtual vcollections.storages
+
+Builders
+
+Synchronizer possibility for replicated storage

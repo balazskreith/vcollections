@@ -21,6 +21,11 @@ dependencies {
 //    compile 'org.mongodb:mongodb-driver-sync:3.11.1'
 //    compile 'com.fasterxml.jackson.core:jackson-core:2.10.0'
 //    compile 'com.fasterxml.jackson.core:jackson-annotations:2.10.0'
+    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.1'
+
+
+    compile group: 'javax.validation', name: 'validation-api', version: '1.0.0.GA'
+    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: '2.5.0'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.10.0'
 
     // For Redis
@@ -41,7 +46,7 @@ uploadArchives {
             repository(url: "https://nexus.wobserver.io") {
                 authentication(userName: "admin", password: "admin")
             }
-            pom.version = "0.1.5"
+            pom.version = "0.1.8"
             pom.artifactId = "vcollections"
             pom.groupId = "com.wobserver"
         }

@@ -1,29 +1,38 @@
-credentials:
-  - name:
-      configs
-
-profiles:
-  - registry:
-      storage:
-        type: replicated
-        storages:
-          - type: redis
-              credential: credential_name
-              capacity: unlimited_by_default
-          - type: mongo
-              credential: credential_name
-              database: db_name
-              collection: collection_name
-
-
+something_else:
+  type: [memory / redis / cluster / replica]
+  credential: credential_name
+  crypter: crypter_name
+---
+something_else:
+  type: [memory / redis / cluster / replica]
+  credential: credential_name
+  crypter: crypter_name
+---
 storages:
-  - redis:
+  - key: customers
+    builder: cachedStorage
+    configuration:
+      keyType: java.lang.String
+      keyGenerator:
+        class: java.lang.String # The registered keyGenerator
+        selfTest: True # False by default
+      subset:
+        builder: memoryStorage
+      superset:
+        builder: memoryStorage
+  - key: sessions
+    builder: memoryStorage
+    configuration:
+      retentionInMs: 10000
+      capacity: 10000
 
-  - storage_name:
-      type: [memory / redis / cluster / replica]
-      credential: credential_name
-      crypter: crypter_name
 
+---
+something_else:
+  type: [memory / redis / cluster / replica]
+  credential: credential_name
+  crypter: crypter_name
+---
 crypters: # Crypting can be achieved by serialization, the key to generate is out of the scope of this feature.
 #  - crypter_name:
 #      type: AES
