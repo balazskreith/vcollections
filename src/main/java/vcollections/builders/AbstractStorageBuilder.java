@@ -1,14 +1,12 @@
 package vcollections.builders;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
+import javax.validation.constraints.Min;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import vcollections.keygenerators.IAccessKeyGenerator;
 import vcollections.keygenerators.IKeyGenerator;
 import vcollections.storages.IStorage;
-import vcollections.storages.MemoryStorage;
 
 public abstract class AbstractStorageBuilder extends AbstractBuilder implements IStorageBuilder {
 
@@ -21,14 +19,29 @@ public abstract class AbstractStorageBuilder extends AbstractBuilder implements 
 		return this;
 	}
 
-	protected<T> IKeyGenerator<T> buildKeyGenerator(AtomicBoolean selfTest) {
-		Map<String, Object> keyGeneratorConfig = this.get(KeyGeneratorBuilder.KEY_GENERATOR_CONFIG_KEY,  obj -> (Map<String, Object>) obj);
-		if (keyGeneratorConfig == null) {
+	protected <K, V, T extends IStorage<K, V> & IAccessKeyGenerator<K>> T decorateWithKeyGenerator(T target, Config config) {
+		if (config.keyGenerator == null) {
 			return null;
 		}
-		this.keyGeneratorBuilder.withConfiguration(keyGeneratorConfig);
-		IKeyGenerator<T> result = this.keyGeneratorBuilder.build();
-		selfTest.set(this.keyGeneratorBuilder.isStorageTest());
-		return result;
+		KeyGeneratorBuilder keyGeneratorBuilder = new KeyGeneratorBuilder();
+		keyGeneratorBuilder.withConfiguration(config.keyGenerator);
+		IKeyGenerator<K> keyGenerator = keyGeneratorBuilder.build();
+		if (keyGeneratorBuilder.isStorageTest()) {
+			keyGenerator.setup(target::has);
+		}
+		target.setKeyGenerator(keyGenerator);
+		return target;
+	}
+
+	// Jackson configuration can be used to generate this class of config
+	// as it is implemented in the AbstractBuilder
+	// and javax validation can be used to validate the objects.
+	// and then we can do a proper
+	public static class Config {
+
+		@Min(value = IStorage.NO_MAX_SIZE)
+		public long capacity = IStorage.NO_MAX_SIZE;
+
+		public Map<String, Object> keyGenerator;
 	}
 }

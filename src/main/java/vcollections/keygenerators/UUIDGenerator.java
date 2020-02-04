@@ -1,16 +1,11 @@
 package vcollections.keygenerators;
 
 import java.util.UUID;
-import java.util.function.Function;
 
-public class UUIDGenerator implements IKeyGenerator<UUID> {
+public class UUIDGenerator extends AbstractGenerator<UUID> {
 
 	public UUIDGenerator() {
-
-	}
-
-	@Override
-	public UUID get() {
-		return UUID.randomUUID();
+		super(0, 0);
+		this.supplier = UUID::randomUUID;
 	}
 }

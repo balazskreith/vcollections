@@ -1,3 +1,7 @@
+//The maven plugin has been deprecated. This is scheduled to be removed in Gradle 7.0. Please use the maven-publish plugin instead.
+//        The compile configuration has been deprecated for dependency declaration. This will fail with an error in Gradle 7.0. Please use the implementation configuration instead.
+//at build_f5ctilzhkt4w0wyo37h9iw45i$_run_closure2.doCall(/Users/balazskreith.finago/github/vcollections/build.gradle:24)
+//(Run with --stacktrace to get the full stack trace of this deprecation warning.)
 plugins {
     id 'java'
     id 'maven'
@@ -27,7 +31,10 @@ dependencies {
     compile group: 'javax.validation', name: 'validation-api', version: '1.0.0.GA'
     compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: '2.5.0'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.10.0'
-
+    compile group: 'javax.validation', name: 'validation-api', version: '2.0.1.Final'
+    compile group: 'org.hibernate', name: 'hibernate-validator', version: '4.2.0.Final'
+    implementation "jakarta.xml.bind:jakarta.xml.bind-api:2.3.2"
+    implementation "org.glassfish.jaxb:jaxb-runtime:2.3.2"
     // For Redis
     compile 'io.lettuce:lettuce-core:5.2.1.RELEASE'
 }
@@ -46,7 +53,7 @@ uploadArchives {
             repository(url: "https://nexus.wobserver.io") {
                 authentication(userName: "admin", password: "admin")
             }
-            pom.version = "0.1.8"
+            pom.version = "0.1.11"
             pom.artifactId = "vcollections"
             pom.groupId = "com.wobserver"
         }

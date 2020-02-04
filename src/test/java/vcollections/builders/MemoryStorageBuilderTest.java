@@ -12,13 +12,14 @@ class MemoryStorageBuilderTest extends AbstractBuilderTest {
 	public static Map<String, Object> createConfig(String keyGenerator, Long capacity) {
 		return createConfig(keyGenerator, capacity, false, 0, 0);
 	}
+
 	public static Map<String, Object> createConfig(String keyGenerator, Long capacity, boolean storageTest, int minSize, int maxSize) {
 		Map<String, Object> result = new HashMap<>();
 		if (capacity != null) {
 			result.put(MemoryStorageBuilder.CAPACITY_CONFIG_KEY, capacity);
 		}
 		if (keyGenerator != null) {
-			result.put(MemoryStorageBuilder.KEY_GENERATOR_CONFIG_KEY,
+			result.put(KeyGeneratorBuilder.KEY_GENERATOR_CONFIG_KEY,
 					Map.of(KeyGeneratorBuilder.CLASS_CONFIG_KEY, keyGenerator,
 							KeyGeneratorBuilder.STORAGE_TEST_CONFIG_KEY, storageTest,
 							KeyGeneratorBuilder.MIN_KEY_SIZE_CONFIG_KEY, minSize,

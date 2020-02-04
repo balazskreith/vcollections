@@ -12,7 +12,6 @@ import vcollections.storages.IStorage;
 @Disabled
 class StorageProviderTest extends AbstractBuilderTest {
 
-
 	private String generateYaml(Map<String, Object> content) throws IOException {
 
 		YAMLFactory yamlFactory = new YAMLFactory();

@@ -22,10 +22,16 @@ public class KeyGeneratorFactory {
 	 * Adds the default key generator to the factory
 	 */
 	public <T> IKeyGenerator<T> make(Class klass, int minSize, int maxSize) {
-		String typeName = klass.getName();
+		return this.make(klass.getName(), minSize, maxSize);
+	}
+
+	/**
+	 * Adds the default key generator to the factory
+	 */
+	public <T> IKeyGenerator<T> make(String typeName, int minSize, int maxSize) {
 		if (typeName.equals(UUID.class.getName())) {
-			if (minSize != maxSize || (minSize != 0 && minSize != 128)) {
-				throw new IllegalArgumentException("For generating UUID, size cannot be different than 0 or 128");
+			if (minSize != maxSize || (minSize != 0 && minSize != 128 && minSize == 36)) {
+				throw new IllegalArgumentException("For generating UUID, size cannot be different than 0, 36, 128");
 			}
 			return (IKeyGenerator<T>) new UUIDGenerator();
 		}
@@ -36,6 +42,10 @@ public class KeyGeneratorFactory {
 
 		if (typeName.equals(Integer.class.getName())) {
 			return (IKeyGenerator<T>) new IntegerGenerator(minSize, maxSize);
+		}
+
+		if (typeName.equals(Long.class.getName())) {
+			return (IKeyGenerator<T>) new LongGenerator(minSize, maxSize);
 		}
 
 		return null;

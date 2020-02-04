@@ -1,17 +1,24 @@
 package vcollections.builders;
 
-import static vcollections.builders.MemoryStorageBuilder.CAPACITY_CONFIG_KEY;
 import java.util.Map;
-import java.util.function.Supplier;
+import javax.validation.constraints.NotNull;
 import vcollections.keygenerators.IKeyGenerator;
 import vcollections.keygenerators.KeyGeneratorFactory;
-import vcollections.storages.IStorage;
-import vcollections.storages.MemoryStorage;
 
 public class KeyGeneratorBuilder extends AbstractBuilder {
+	public static class Config {
+		@NotNull
+		public String klass;
+
+		public boolean storageTest = false;
+
+		public int minSize = 0;
+
+		public int maxSize = 0;
+	}
 
 	public static final String KEY_GENERATOR_CONFIG_KEY = "keyGenerator";
-	public static final String CLASS_CONFIG_KEY = "class";
+	public static final String CLASS_CONFIG_KEY = "klass";
 	public static final String STORAGE_TEST_CONFIG_KEY = "storageTest";
 	public static final String MIN_KEY_SIZE_CONFIG_KEY = "minSize";
 	public static final String MAX_KEY_SIZE_CONFIG_KEY = "maxSize";
@@ -30,11 +37,12 @@ public class KeyGeneratorBuilder extends AbstractBuilder {
 
 	/**
 	 * If this param is set, the normal config will be ignored
+	 *
 	 * @param keyGenerator
 	 * @param <T>
 	 * @return
 	 */
-	public<T> KeyGeneratorBuilder withKeyGenerator(IKeyGenerator<T> keyGenerator) {
+	public <T> KeyGeneratorBuilder withKeyGenerator(IKeyGenerator<T> keyGenerator) {
 		this.configure(CONFIGURED_KEY_GENERATOR_CONFIG_KEY, keyGenerator);
 		return this;
 	}
@@ -42,26 +50,21 @@ public class KeyGeneratorBuilder extends AbstractBuilder {
 	public <T> IKeyGenerator<T> build() {
 		IKeyGenerator<T> result = this.get(CONFIGURED_KEY_GENERATOR_CONFIG_KEY, obj -> (IKeyGenerator<T>) obj);
 		if (result != null) {
-			return null;
+			return result;
 		}
-		String klassName = this.get(CLASS_CONFIG_KEY, Object::toString);
-		if (klassName == null) {
-			return null;
+		Config config = this.convertAndValidate(Config.class);
+		this.storageTest = config.storageTest;
+		result = this.factory.make(config.klass, config.minSize, config.maxSize);
+		if (result == null) {
+			throw new NullPointerException(String.format("KeyGenerator cannot be created with the given parameter class: {}, minSize: {}, maxSize: {}, storageTest: {}",
+					config.klass, config.minSize, config.maxSize, this.storageTest));
 		}
-		Boolean storageTest = this.getOrDefault(STORAGE_TEST_CONFIG_KEY, obj-> (Boolean)obj, false);
-		Class klass = null;
-		try {
-			klass = Class.forName(klassName);
-		} catch (ClassNotFoundException e) {
-			return null;
-		}
-		int minSize = this.getOrDefault(MIN_KEY_SIZE_CONFIG_KEY, obj -> (Integer) obj, 0);
-		int maxSize = this.getOrDefault(MAX_KEY_SIZE_CONFIG_KEY, obj -> (Integer) obj, 0);
-		result = this.factory.make(klass, minSize, maxSize);
 		return result;
 	}
 
 	public boolean isStorageTest() {
 		return this.storageTest;
 	}
+
+
 }

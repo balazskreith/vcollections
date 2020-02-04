@@ -1,18 +1,20 @@
 package vcollections.keygenerators;
 
-import java.util.Random;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public abstract class AbstractGenerator<T> implements IKeyGenerator<T> {
 
-	protected Predicate<T> tester;
 	protected Supplier<T> supplier;
-	protected int maxRetry = 10;
-	private final int minSize;
-	private final int maxSize;
+	/**
+	 * Check if the storgage has this value or not
+	 */
+	protected Predicate<T> tester = storageValue -> false;
+	private int maxRetry = 10;
+	private final long minSize;
+	private final long maxSize;
 
-	protected AbstractGenerator(int minSize, int maxSize) {
+	protected AbstractGenerator(long minSize, long maxSize) {
 		this.minSize = minSize;
 		this.maxSize = maxSize;
 	}
@@ -41,11 +43,11 @@ public abstract class AbstractGenerator<T> implements IKeyGenerator<T> {
 		this.tester = tester;
 	}
 
-	protected int getMinSize() {
+	protected long getMinSize() {
 		return this.minSize;
 	}
 
-	protected int getMaxSize() {
+	protected long getMaxSize() {
 		return this.maxSize;
 	}
 

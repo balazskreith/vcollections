@@ -15,7 +15,7 @@ storages:
       keyType: java.lang.String
       keyGenerator:
         class: java.lang.String # The registered keyGenerator
-        selfTest: True # False by default
+        storageTest: True # False by default
       subset:
         builder: memoryStorage
       superset:
@@ -25,6 +25,7 @@ storages:
     configuration:
       retentionInMs: 10000
       capacity: 10000
+
 
 
 ---

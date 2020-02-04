@@ -1,33 +1,40 @@
 package vcollections.builders;
 
+import java.util.Map;
+import javax.validation.constraints.NotNull;
 import vcollections.storages.CachedStorage;
 import vcollections.storages.IStorage;
 
-public class CachedStorageBuilder<K, V> extends AbstractStorageBuilder implements IStorageBuilder{
+public class CachedStorageBuilder<K, V> extends AbstractStorageBuilder implements IStorageBuilder {
 	public static final String KEY_TYPE_CONFIG_KEY = "keyType";
 	public static final String SUPERSET_CONFIG_KEY = "superset";
 	public static final String SUBSET_CONFIG_KEY = "subset";
 
 	@Override
 	public CachedStorage<K, V> build() {
-		// TODO: validate
+		Config config = this.convertAndValidate(Config.class);
 
-		String keyTypeConfig = this.get(KEY_TYPE_CONFIG_KEY, Object::toString);
-		if (keyTypeConfig == null) {
-			throw new InvalidConfigurationException();
-		}
 		Class keyType;
-		try { // TODO: this should go to a validation?
-			keyType = Class.forName(keyTypeConfig);
+		try {
+			keyType = Class.forName(config.keyType);
 		} catch (ClassNotFoundException e) {
-			throw new InvalidConfigurationException("Class type for " + keyTypeConfig + " does not exist");
+			throw new InvalidConfigurationException("Class type for " + config.keyType + " does not exist");
 		}
 
-		IStorage<K, V> superset = this.get(SUPERSET_CONFIG_KEY, obj ->
-				new StorageBuilder().withConfiguration(obj).build());
-		IStorage<K, V> subset = this.get(SUBSET_CONFIG_KEY, obj ->
-				new StorageBuilder().withConfiguration(obj).build());
+		IStorage<K, V> superset = new StorageBuilder().withConfiguration(config.subset).build();
+		IStorage<K, V> subset = new StorageBuilder().withConfiguration(config.superset).build();
 		CachedStorage<K, V> result = new CachedStorage<>(keyType, superset, subset);
 		return result;
+	}
+
+	public static class Config extends AbstractStorageBuilder.Config {
+		@NotNull
+		public String keyType;
+
+		@NotNull
+		public Map<String, Object> superset;
+
+		@NotNull
+		public Map<String, Object> subset;
 	}
 }
