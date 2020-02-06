@@ -4,7 +4,7 @@
 //(Run with --stacktrace to get the full stack trace of this deprecation warning.)
 plugins {
     id 'java'
-    id 'maven'
+//    id 'maven'
     id 'maven-publish'
 }
 
@@ -47,18 +47,18 @@ wrapper {
     distributionType = Wrapper.DistributionType.ALL
 }
 
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            repository(url: "https://nexus.wobserver.io") {
-                authentication(userName: "admin", password: "admin")
-            }
-            pom.version = "0.1.12"
-            pom.artifactId = "vcollections"
-            pom.groupId = "com.wobserver"
-        }
-    }
-}
+//uploadArchives {
+//    repositories {
+//        mavenDeployer {
+//            repository(url: "https://nexus.wobserver.io") {
+//                authentication(userName: "admin", password: "admin")
+//            }
+//            pom.version = "0.1.12"
+//            pom.artifactId = "vcollections"
+//            pom.groupId = "com.wobserver"
+//        }
+//    }
+//}
 
 publishing {
     repositories {
