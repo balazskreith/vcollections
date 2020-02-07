@@ -4,11 +4,10 @@
 //(Run with --stacktrace to get the full stack trace of this deprecation warning.)
 plugins {
     id 'java'
-//    id 'maven'
-    id 'maven-publish'
+    id "com.jfrog.bintray" version "1.7"
 }
 
-group 'wobserver'
+group 'com.wobserver'
 version '0.7.0'
 
 sourceCompatibility = 1.12
@@ -16,7 +15,9 @@ targetCompatibility = 1.12
 
 repositories {
     mavenCentral()
+    jcenter()
 }
+
 
 dependencies {
 //    testCompile group: 'junit', name: 'junit', version: '5.0'
@@ -47,44 +48,33 @@ wrapper {
     distributionType = Wrapper.DistributionType.ALL
 }
 
-//uploadArchives {
-//    repositories {
-//        mavenDeployer {
-//            repository(url: "https://nexus.wobserver.io") {
-//                authentication(userName: "admin", password: "admin")
-//            }
-//            pom.version = "0.1.12"
-//            pom.artifactId = "vcollections"
-//            pom.groupId = "com.wobserver"
-//        }
-//    }
-//}
-
 publishing {
     publications {
-        mavenJava(MavenPublication) {
-            pom {
-                name = "vcollections"
-                description = "description"
-                url = "https://github.com/balazskrerith/vcollections"
-
-                scm {
-                    url = "https://github.com/balazskrerith/vcollections"
-                }
-            }
-        }
-    }
-
-    // select the repositories you want to publish to
-    repositories {
-        maven {
-            name = "vcollections"
-            url = uri("https://maven.pkg.github.com/balazskreith/vcollections")
-            credentials {
-                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-                password = project.findProperty("gpr.key") ?: System.getenv("PASSWORD")
-            }
+        vcollections(MavenPublication) {
+            from components.java
+            groupId project.group
+            artifactId 'vcollections-coree'
+            version project.version
         }
     }
 }
 
+bintray {
+    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+    publications = ['vcollections']
+    pkg {
+        repo = 'vcollections'
+        name = 'vcollectinos-core'
+        userOrg = 'wobserver'
+        licenses = ['GNUGPL-3.0']
+        vcsUrl = 'https://github.com/balazskreith/vcollections.git'
+        labels = ['collections', 'virtualization', 'flexible', 'storage']
+        publicDownloadNumbers = true
+        version {
+            name = '0.7-Beta'
+            desc = 'This is a description for vcollections'
+            vcsTag = '0.7.0'
+        }
+    }
+}
