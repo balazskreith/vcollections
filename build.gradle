@@ -4,11 +4,11 @@
 //(Run with --stacktrace to get the full stack trace of this deprecation warning.)
 plugins {
     id 'java'
-    id "com.jfrog.bintray" version "1.7"
+    id "com.jfrog.bintray" version "1.8.4"
 }
 
 group 'com.wobserver'
-version '0.7.2'
+version '0.7.3'
 
 sourceCompatibility = 1.12
 targetCompatibility = 1.12
@@ -71,7 +71,7 @@ bintray {
         labels = ['collections', 'virtualization', 'flexible', 'storage']
         publicDownloadNumbers = true
         version {
-            name = '0.7.2'
+            name = version
             desc = 'This is a description for vcollections'
             vcsTag = '0.7.2'
         }
@@ -82,9 +82,9 @@ publishing {
     publications {
         vcollections(MavenPublication) {
             from components.java
-            groupId 'com.wobserver'
+            groupId group
             artifactId 'vcollections-core'
-            version '0.7.2'
+            version version
         }
     }
 }
