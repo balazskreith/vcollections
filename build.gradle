@@ -66,7 +66,7 @@ bintray {
         repo = 'vcollections'
         name = 'vcollectinos-core'
         userOrg = 'wobserver'
-        licenses = ['GNUGPL-3.0']
+        licenses = ['AGPL-V3']
         vcsUrl = 'https://github.com/balazskreith/vcollections.git'
         labels = ['collections', 'virtualization', 'flexible', 'storage']
         publicDownloadNumbers = true
