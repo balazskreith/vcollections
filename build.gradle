@@ -61,6 +61,21 @@ wrapper {
 //}
 
 publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            pom {
+                name = "vcollections"
+                description = "description"
+                url = "https://github.com/balazskrerith/vcollections"
+
+                scm {
+                    url = "https://github.com/balazskrerith/vcollections"
+                }
+            }
+        }
+    }
+
+    // select the repositories you want to publish to
     repositories {
         maven {
             name = "vcollections"
@@ -69,11 +84,6 @@ publishing {
                 username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
                 password = project.findProperty("gpr.key") ?: System.getenv("PASSWORD")
             }
-        }
-    }
-    publications {
-        vcollections(MavenPublication) {
-            from(components.java)
         }
     }
 }
