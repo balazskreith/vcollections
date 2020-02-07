@@ -8,7 +8,7 @@ plugins {
 }
 
 group 'com.wobserver'
-version '0.7.0'
+version '0.7.2'
 
 sourceCompatibility = 1.12
 targetCompatibility = 1.12
@@ -71,9 +71,9 @@ bintray {
         labels = ['collections', 'virtualization', 'flexible', 'storage']
         publicDownloadNumbers = true
         version {
-            name = '0.7.0'
+            name = '0.7.2'
             desc = 'This is a description for vcollections'
-            vcsTag = '0.7.0'
+            vcsTag = '0.7.2'
         }
     }
 }
