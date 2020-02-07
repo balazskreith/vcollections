@@ -82,9 +82,9 @@ publishing {
     publications {
         vcollections(MavenPublication) {
             from components.java
-            groupId project.group
+            groupId 'com.wobserver'
             artifactId 'vcollections-core'
-            version project.version
+            version '0.7.2'
         }
     }
 }
