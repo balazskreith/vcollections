@@ -63,7 +63,7 @@ wrapper {
 publishing {
     repositories {
         maven {
-            name = "GitHubPackages"
+            name = "vcollections"
             url = uri("https://maven.pkg.github.com/balazskreith/vcollections")
             credentials {
                 username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
@@ -72,7 +72,7 @@ publishing {
         }
     }
     publications {
-        gpr(MavenPublication) {
+        vcollections(MavenPublication) {
             from(components.java)
         }
     }
