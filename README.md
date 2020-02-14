@@ -1,7 +1,4 @@
-# Virtual Collections for Microservice Architecture (vcollections)
-
-Intro
-(Design Goals)
+# Virtualized Collections for Microservice Architecture (com.wobserver.vcollections)
 
 ## Architecture
 
@@ -10,10 +7,7 @@ Intro
 ## Contributions
 
 ## License
-```
-  <dependency>
-    <groupId>wobserver</groupId>
-    <artifactId>vcollections</artifactId>
-    <version>0.7.0</version>
-  </dependency>
-```
+
+
+## Yml configuration:
+

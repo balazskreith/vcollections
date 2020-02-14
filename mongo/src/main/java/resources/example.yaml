@@ -1,0 +1,21 @@
+storages:
+  - key: mongoExample
+    builder: MongoStorageBuilder
+    configuration:
+      URI:
+        username:
+        password: # optional
+        servers:
+          - name: "master"
+            host: "localhost"
+            port:
+        options:
+          ssl: True
+
+      database: "db"
+      collection: "collection"
+      valueType: java.lang.String
+      keyFieldName: null                 # optional
+      nullValue: java.lang.String        # optional
+      nullKey: java.lang.Long            # optional
+      expirationInS: 4                   # optional

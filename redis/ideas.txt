@@ -1,0 +1,2 @@
+Exploit the possibility of different data structure already iomplemented in Redis
+ and map them to collections directly.

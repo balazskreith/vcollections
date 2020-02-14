@@ -1,0 +1,14 @@
+sourceCompatibility = 1.12
+targetCompatibility = 1.12
+
+dependencies {
+    implementation project(':core')
+    testCompile project(':core').sourceSets.test.output
+    testImplementation 'com.github.fakemongo:fongo:2.1.0'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.10.0'
+
+    // https://mvnrepository.com/artifact/org.mongojack/mongojack
+//    compile group: 'org.mongojack', name: 'mongojack', version: '3.0.1'
+    compile group: 'org.mongodb', name: 'mongo-java-driver', version: '3.12.1'
+
+}
