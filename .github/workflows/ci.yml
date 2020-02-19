@@ -1,6 +1,6 @@
 name: Compile and Deploy
 
-on: [push]
+on: [release]
 
 jobs:
   build:
