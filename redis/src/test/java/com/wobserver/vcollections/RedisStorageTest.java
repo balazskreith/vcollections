@@ -14,12 +14,13 @@ import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import redis.embedded.RedisServer;
 
-class RedisStorageTest implements StorageTest<RedisStorage<String, String>> {
+class RedisStorageTest implements StorageTest<String, String, RedisStorage<String, String>> {
 
 	private static final int redisPort = 6367;
 
@@ -64,13 +65,24 @@ class RedisStorageTest implements StorageTest<RedisStorage<String, String>> {
 //		redisServer.stop();
 //	}
 
+
 	@Override
-	public IStorage<String, String> makeStorage(long maxSize, String... items) {
-		return makeStorage(maxSize, 0, items);
+	public String toKey(String key) {
+		return key;
+	}
+
+	@Override
+	public String toValue(String value) {
+		return value;
+	}
+
+	@Override
+	public IStorage<String, String> makeStorage(long maxSize, Map.Entry<String, String>... entries) {
+		return makeStorage(maxSize, 0, entries);
 
 	}
 
-	public IStorage<String, String> makeStorage(long maxSize, int retentionInS, String... items) {
+	public IStorage<String, String> makeStorage(long maxSize, int retentionInS, Map.Entry<String, String>... entries) {
 		RedisURI redisURI = RedisURI.builder()
 				.withHost("localhost")
 				.withPort(redisPort)
@@ -94,11 +106,9 @@ class RedisStorageTest implements StorageTest<RedisStorage<String, String>> {
 			}
 			syncCommands.set(key, value);
 		};
-		if (items != null) {
-			for (int i = 0; i + 1 < items.length; i += 2) {
-				String key = items[i];
-				String value = items[i + 1];
-				setCommand.accept(key, value);
+		if (entries != null) {
+			for (Map.Entry<String, String> entry : entries) {
+				setCommand.accept(entry.getKey(), entry.getValue());
 			}
 		}
 		KeyScanCursor<String> cursor = syncCommands.scan(ScanArgs.Builder.limit(50));

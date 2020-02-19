@@ -1,11 +1,11 @@
 package com.wobserver.vcollections.storages;
 
+import com.wobserver.vcollections.keygenerators.IAccessKeyGenerator;
 import com.wobserver.vcollections.keygenerators.IKeyGenerator;
 import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import com.wobserver.vcollections.keygenerators.IAccessKeyGenerator;
 
 public class LRUMemoryStorage<K, V> implements IStorage<K, V>, IAccessKeyGenerator<K> {
 
@@ -13,7 +13,7 @@ public class LRUMemoryStorage<K, V> implements IStorage<K, V>, IAccessKeyGenerat
 	private IKeyGenerator<K> keyGenerator = null;
 	private int retentionInMs;
 	private Long capacity = NO_MAX_SIZE;
-	private LinkedHashMap<K, Item> map = new LinkedHashMap<>() {
+	private LinkedHashMap<K, Item> map = new LinkedHashMap<>(16, 0.75f, true) {
 		@Override
 		protected boolean removeEldestEntry(Map.Entry<K, Item> eldest) {
 			if (LRUMemoryStorage.this.capacity == NO_MAX_SIZE) {

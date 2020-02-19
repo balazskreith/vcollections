@@ -2,20 +2,21 @@ storages:
   - key: mongoExample
     builder: MongoStorageBuilder
     configuration:
-      URI:
-        username:
-        password: # optional
-        servers:
-          - name: "master"
-            host: "localhost"
-            port:
-        options:
-          ssl: True
-
-      database: "db"
-      collection: "collection"
+      swapperType: "BiConsumer<ValueType, ValueType> instance"   #optional, default: null
       valueType: java.lang.String
-      keyFieldName: null                 # optional
-      nullValue: java.lang.String        # optional
-      nullKey: java.lang.Long            # optional
-      expirationInS: 4                   # optional
+      keyFieldInValue: key
+      keyFieldInDocument: _id               # optional, default: inherit by using the keyFieldInValue
+      connection:
+        collection: "my-collection"
+        database: "my-database"
+        maxRetries: 3                       # optional, default: 3
+        URI:
+          username:
+          password: # optional
+          servers:
+            - host: "localhost"             # optional, default: localhost
+              port: 27017                   # optional, default: 27017
+          options:                          # optional
+            ssl: False
+
+

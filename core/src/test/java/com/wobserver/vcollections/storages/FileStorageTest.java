@@ -13,19 +13,27 @@ import org.junit.jupiter.api.io.TempDir;
  * The target storage needs to inherit this one and overwrite the makeStorage protected methods to test the actual storage
  */
 
-public class FileStorageTest implements StorageTest<FileStorage<String, String>> {
+public class FileStorageTest implements StorageTest<String, String, FileStorage<String, String>> {
 
 	@TempDir
 	File tempDir;
 
 	@Override
-	public IStorage<String, String> makeStorage(long maxSize, String... items) {
+	public String toKey(String key) {
+		return key;
+	}
+
+	@Override
+	public String toValue(String value) {
+		return value;
+	}
+
+	@Override
+	public IStorage<String, String> makeStorage(long maxSize, Map.Entry<String, String>... entries) {
 		Map<String, String> pairs = new HashMap<>();
-		if (items != null) {
-			for (int i = 0; i + 1 < items.length; i += 2) {
-				String key = items[i];
-				String value = items[i + 1];
-				pairs.put(key, value);
+		if (entries != null) {
+			for (Map.Entry<String, String> entry : entries) {
+				pairs.put(entry.getKey(), entry.getValue());
 			}
 		}
 		IStorage<String, String> result = null;
@@ -38,5 +46,4 @@ public class FileStorageTest implements StorageTest<FileStorage<String, String>>
 		}
 		return result;
 	}
-
 }

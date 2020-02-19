@@ -1,9 +1,8 @@
 package com.wobserver.vcollections.storages;
 
 import static org.junit.jupiter.api.Assertions.*;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.lang.reflect.Array;
+import java.util.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -13,14 +12,37 @@ import org.junit.jupiter.api.Test;
  * The target storage needs to inherit this one and overwrite the makeStorage protected methods to test the actual storage
  */
 
-public interface StorageTest<T extends IStorage<? super String, ? super String>> {
+public interface StorageTest<K, V, T extends IStorage<K, V>> {
 
-	IStorage<String, String> makeStorage(long maxSize, String... items);
+	IStorage<K, V> makeStorage(long maxSize, Map.Entry<K, V>... entries);
 
-	default IStorage<String, String> makeStorage(String... items) {
-		return makeStorage(IStorage.NO_MAX_SIZE, items);
+	default IStorage<K, V> makeStorage(Map.Entry<K, V>... entries) {
+		return makeStorage(IStorage.NO_MAX_SIZE, entries);
 	}
 
+	K toKey(String key);
+
+	V toValue(String value);
+
+	default Map.Entry<K, V> toEntry(String keyString, String valueString) {
+		K key = toKey(keyString);
+		V value = toValue(valueString);
+		return new AbstractMap.SimpleEntry(key, value);
+	}
+
+	default Map.Entry<K, V>[] toEntries(String... items) {
+		List<Map.Entry<K, V>> entries = new ArrayList<>();
+		if (items != null) {
+			for (int i = 0; i + 1 < items.length; i += 2) {
+				String key = items[i];
+				String value = items[i + 1];
+				Map.Entry<K, V> entry = toEntry(key, value);
+				entries.add(entry);
+			}
+		}
+		Map.Entry<K, V>[] result = (Map.Entry<K, V>[]) Array.newInstance(Map.Entry.class, entries.size());
+		return entries.toArray(result);
+	}
 
 	/**
 	 * <p>Given</p>: An empty storage
@@ -35,11 +57,11 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldCreateAnEntry() {
 		// Given
-		String value = "value";
-		IStorage<String, String> storage = makeStorage();
+		IStorage<K, V> storage = makeStorage();
 
 		// When
-		String key = storage.create(value);
+		V value = toValue("value");
+		K key = storage.create(value);
 
 		// Then
 		assertEquals(value, storage.read(key));
@@ -59,11 +81,11 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldReadASingleEntry() {
 		// Given
-		String value = "value";
-		IStorage<String, String> storage = makeStorage();
+		IStorage<K, V> storage = makeStorage();
 
 		// When
-		String key = storage.create(value);
+		V value = toValue("value");
+		K key = storage.create(value);
 
 		// Then
 		assertEquals(value, storage.read(key));
@@ -79,14 +101,14 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldReadNullForNotExistedKey() {
 		// Given
-		String value = "value";
-		IStorage<String, String> storage = makeStorage();
+		IStorage<K, V> storage = makeStorage();
 
 		// When
-		String key = storage.create(value);
+		V value = toValue("value");
+		K key = storage.create(value);
 
 		// Then
-		assertNull(storage.read("non" + key));
+		assertNull(storage.read(toKey("non" + key)));
 	}
 
 
@@ -101,14 +123,14 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldReadNullForExistedKey() {
 		// Given
-		String value = null;
-		IStorage<String, String> storage = makeStorage();
+		IStorage<K, V> storage = makeStorage();
 
 		// When
-		String key = storage.create(value);
+		V value = toValue(null);
+		K key = storage.create(value);
 
 		// Then
-		assertNull(storage.read(key));
+		assertEquals(value, storage.read(key));
 		assertTrue(storage.has(key));
 	}
 
@@ -121,11 +143,11 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldNotHaveKey() {
 		// Given
-		IStorage<String, String> storage = makeStorage();
+		IStorage<K, V> storage = makeStorage();
 
 		// Then
-		assertNull(storage.read("key"));
-		assertFalse(storage.has("key"));
+		assertNull(storage.read(toKey("key")));
+		assertFalse(storage.has(toKey("key")));
 		assertTrue(storage.isEmpty());
 	}
 
@@ -140,15 +162,15 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldReadKey() {
 		// Given
-		String value = "value";
-		IStorage<String, String> storage = makeStorage();
+		IStorage<K, V> storage = makeStorage();
 
 		// When
-		storage.update(null, value);
+		Map.Entry<K, V> entry = toEntry(null, null);
+		storage.update(entry.getKey(), entry.getValue());
 
 		// Then
-		assertEquals(value, storage.read(null));
-		assertTrue(storage.has(null));
+		assertEquals(entry.getValue(), storage.read(entry.getKey()));
+		assertTrue(storage.has(entry.getKey()));
 	}
 
 
@@ -162,14 +184,17 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldUpdateKey() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(entries);
 
 		// When
-		storage.update("key1", "value1");
+		Map.Entry<K, V> entry = toEntry(entries[0].getKey().toString(), "value1");
+		K key = entry.getKey();
+		V newValue = entry.getValue();
+		storage.update(key, newValue);
 
 		// Then
-		assertEquals("value1", storage.read("key1"));
+		assertEquals(newValue, storage.read(key));
 	}
 
 
@@ -183,14 +208,17 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldUpdateNullKey() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(entries);
 
 		// When
-		storage.update(null, "new-value1");
+		Map.Entry<K, V> entry = toEntry(null, "new-value1");
+		K key = entry.getKey();
+		V value = entry.getValue();
+		storage.update(key, value);
 
 		// Then
-		assertEquals("new-value1", storage.read(null));
+		assertEquals(value, storage.read(key));
 	}
 
 	/**
@@ -205,13 +233,16 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldAddNewEntryByUpdating() {
 		// Given
-		IStorage<String, String> storage = makeStorage();
+		IStorage<K, V> storage = makeStorage();
 
 		// When
-		storage.update("key3", "value3");
+		Map.Entry<K, V> entry = toEntry("key3", "value3");
+		K key = entry.getKey();
+		V value = entry.getValue();
+		storage.update(key, value);
 
 		// Then
-		assertEquals("value3", storage.read("key3"));
+		assertEquals(value, storage.read(key));
 		assertEquals(1L, storage.entries());
 		assertFalse(storage.isEmpty());
 	}
@@ -226,14 +257,17 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldUpdateWithNull() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(entries);
 
 		// When
-		storage.update("key2", null);
+		Map.Entry<K, V> entry = toEntry("key2", null);
+		K key = entry.getKey();
+		V value = entry.getValue();
+		storage.update(key, value);
 
 		// Then
-		assertNull(storage.read("key2"));
+		assertEquals(value, storage.read(key));
 	}
 
 	/**
@@ -247,15 +281,18 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldUpdateNullWithNull() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(entries);
 
 		// When
-		storage.update(null, null);
+		Map.Entry<K, V> entry = toEntry(null, null);
+		K nullKey = entry.getKey();
+		V nullValue = entry.getValue();
+		storage.update(nullKey, nullValue);
 
 		// Then
-		assertNull(storage.read(null));
-		assertTrue(storage.has(null));
+		assertEquals(nullValue, storage.read(nullKey));
+		assertTrue(storage.has(nullKey));
 	}
 
 	/**
@@ -270,15 +307,16 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldDeleteKey() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(entries);
 
 		// When
-		storage.delete("key1");
+		K key = toKey("key1");
+		storage.delete(key);
 
 		// Then
-		assertNull(storage.read("key1"));
-		assertFalse(storage.has("key1"));
+		assertNull(storage.read(key));
+		assertFalse(storage.has(key));
 		assertEquals(2, storage.entries());
 	}
 
@@ -294,15 +332,16 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldDeleteNullKey() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(entries);
 
 		// When
-		storage.delete(null);
+		K key = toKey(null);
+		storage.delete(key);
 
 		// Then
-		assertNull(storage.read(null));
-		assertFalse(storage.has(null));
+		assertNull(storage.read(key));
+		assertFalse(storage.has(key));
 		assertEquals(2, storage.entries());
 	}
 
@@ -318,15 +357,16 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldDeleteNotExistentKey() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(entries);
 
 		// When
-		storage.delete("key3");
+		K key = toKey("key3");
+		storage.delete(key);
 
 		// Then
-		assertNull(storage.read("key3"));
-		assertFalse(storage.has("key3"));
+		assertNull(storage.read(key));
+		assertFalse(storage.has(key));
 		assertEquals(3, storage.entries());
 	}
 
@@ -342,8 +382,8 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldClearTheStorage() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(entries);
 
 		// When
 		storage.clear();
@@ -363,15 +403,17 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldSwapKeys() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(entries);
 
 		// When
-		storage.swap("key1", "key2");
+		Map.Entry<K, V> entry1 = entries[0];
+		Map.Entry<K, V> entry2 = entries[1];
+		storage.swap(entry1.getKey(), entry2.getKey());
 
 		// Then
-		assertEquals("value2", storage.read("key1"));
-		assertEquals(null, storage.read("key2"));
+		assertEquals(entry2.getValue(), storage.read(entry1.getKey()));
+		assertEquals(entry1.getValue(), storage.read(entry2.getKey()));
 	}
 
 	/**
@@ -384,15 +426,17 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldSwapNullKey() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(entries);
 
 		// When
-		storage.swap("key1", null);
+		Map.Entry<K, V> entry1 = entries[0];
+		Map.Entry<K, V> entry2 = entries[2];
+		storage.swap(entry1.getKey(), entry2.getKey());
 
 		// Then
-		assertEquals("nvalue", storage.read("key1"));
-		assertEquals(null, storage.read(null));
+		assertEquals(entry2.getValue(), storage.read(entry1.getKey()));
+		assertEquals(entry1.getValue(), storage.read(entry2.getKey()));
 	}
 
 	/**
@@ -405,12 +449,12 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldThrowExceptionIfKeyNotExistingAtSwap1() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2"};
-		IStorage<String, String> storage = makeStorage(values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2");
+		IStorage<K, V> storage = makeStorage(entries);
 
 		// When
 		Assertions.assertThrows(KeyNotFoundException.class, () -> {
-			storage.swap("nokey", "key1");
+			storage.swap(toKey("nokey"), toKey("key1"));
 		});
 
 		// Then
@@ -426,12 +470,12 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldThrowExceptionIfKeyNotExistingAtSwap2() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2"};
-		IStorage<String, String> storage = makeStorage(values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2");
+		IStorage<K, V> storage = makeStorage(entries);
 
 		// When
 		Assertions.assertThrows(KeyNotFoundException.class, () -> {
-			storage.swap("key1", "nokey");
+			storage.swap(toKey("key1"), toKey("nokey"));
 		});
 
 		// Then
@@ -449,20 +493,20 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldIterateValues() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(values);
-		Map<String, String> read = new HashMap<>();
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(entries);
+		Map<K, V> read = new HashMap<>();
 
 		// When
-		for (Iterator<Map.Entry<String, String>> it = storage.iterator(); it.hasNext(); ) {
-			Map.Entry<String, String> entry = it.next();
+		for (Iterator<Map.Entry<K, V>> it = storage.iterator(); it.hasNext(); ) {
+			Map.Entry<K, V> entry = it.next();
 			read.put(entry.getKey(), entry.getValue());
 		}
 
 		// Then
-		assertEquals(null, read.get("key1"));
-		assertEquals("value2", read.get("key2"));
-		assertEquals("nvalue", read.get(null));
+		assertEquals(entries[0].getValue(), read.get(entries[0].getKey()));
+		assertEquals(entries[1].getValue(), read.get(entries[1].getKey()));
+		assertEquals(entries[2].getValue(), read.get(entries[2].getKey()));
 		assertEquals(3, read.size());
 	}
 
@@ -481,11 +525,11 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Disabled(value = "FileStorage DirectoryStream Iterator throws NoSuchElement exception because it was not implemented there.")
 	default void shouldIterateValuesAndRemoveFirst() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(values);
-		Map<String, String> read = new HashMap<>();
-		Iterator<Map.Entry<String, String>> it = storage.iterator();
-		Map.Entry<String, String> item;
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(entries);
+		Map<K, V> read = new HashMap<>();
+		Iterator<Map.Entry<K, V>> it = storage.iterator();
+		Map.Entry<K, V> item;
 
 		// When
 		it.next();
@@ -496,9 +540,9 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 		read.put(item.getKey(), item.getValue());
 
 		// Then
-		assertEquals(null, read.get("key1"));
-		assertEquals("value2", read.get("key2"));
-		assertEquals("nvalue", read.get(null));
+		assertEquals(null, read.get(toKey("key1")));
+		assertEquals(entries[1].getValue(), read.get(entries[1].getKey()));
+		assertEquals(entries[2].getValue(), read.get(entries[2].getKey()));
 		assertEquals(2, read.size());
 	}
 
@@ -519,11 +563,11 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldBeFull() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(4L, values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(4L, entries);
 
 		// When
-		storage.create("value4");
+		storage.create(toValue("value4"));
 
 		// Then
 		assertEquals(4, storage.entries());
@@ -543,12 +587,12 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldThrowOutOfSpaceExceptionAfterCreate() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(3L, values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(3L, entries);
 
 		// When
 		Assertions.assertThrows(OutOfSpaceException.class, () -> {
-			storage.create("value4");
+			storage.create(toValue("value4"));
 		});
 
 		// Then
@@ -568,11 +612,12 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldNotThrowOutOfSpaceExceptionAfterUpdate() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(3L, values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(3L, entries);
 
 		// When
-		storage.update("key1", "value1");
+		Map.Entry<K, V> entry = toEntry("key1", "value1");
+		storage.update(entry.getKey(), entry.getValue());
 
 		// Then
 		assertEquals(3, storage.entries());
@@ -591,12 +636,15 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldThrowOutOfSpaceExceptionAfterUpdate() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(3L, values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(3L, entries);
 
 		// When
 		Assertions.assertThrows(OutOfSpaceException.class, () -> {
-			storage.update("key3", "value4");
+			Map.Entry<K, V> entry = toEntry("key3", "value4");
+			K key = entry.getKey();
+			V value = entry.getValue();
+			storage.update(key, value);
 		});
 
 		// Then
@@ -615,11 +663,11 @@ public interface StorageTest<T extends IStorage<? super String, ? super String>>
 	@Test
 	default void shouldDeleteNull() {
 		// Given
-		String[] values = {"key1", null, "key2", "value2", null, "nvalue"};
-		IStorage<String, String> storage = makeStorage(3L, values);
+		Map.Entry<K, V>[] entries = toEntries("key1", null, "key2", "value2", null, "nvalue");
+		IStorage<K, V> storage = makeStorage(3L, entries);
 
 		// When
-		storage.delete("key2");
+		storage.delete(toKey("key2"));
 
 		// Then
 		assertEquals(2, storage.entries());

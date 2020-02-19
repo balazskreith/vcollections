@@ -1,5 +1,6 @@
 package com.wobserver.vcollections.builders;
 
+import java.util.Map;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
@@ -9,7 +10,23 @@ class MongoURIServerBuilder extends AbstractBuilder {
 	public static final String PORT_CONFIG_KEY = "port";
 	public static final String HOST_CONFIG_KEY = "host";
 
+	/**
+	 * Puts all configuration to the inside holder in the builder.
+	 * These configurations are used when the {@link this#build()} is called.
+	 *
+	 * @param configs The provided configurations
+	 * @return {@link this} builder.
+	 */
+	public MongoURIServerBuilder withConfiguration(Map<String, Object> configs) {
+		this.configs.putAll(configs);
+		return this;
+	}
 
+	/**
+	 * Builds the string to connect to  the deddicated server
+	 *
+	 * @return
+	 */
 	public String build() {
 		Config config = this.convertAndValidate(Config.class);
 		String result = String.join(":", config.host, config.port.toString());

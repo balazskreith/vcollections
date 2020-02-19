@@ -1,7 +1,10 @@
 package com.wobserver.vcollections;
 
+import com.wobserver.vcollections.keygenerators.IAccessKeyGenerator;
 import com.wobserver.vcollections.keygenerators.IKeyGenerator;
 import com.wobserver.vcollections.storages.IStorage;
+import com.wobserver.vcollections.storages.sort.ISorter;
+import com.wobserver.vcollections.storages.sort.arrays.Quicksorter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -9,9 +12,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import com.wobserver.vcollections.keygenerators.IAccessKeyGenerator;
-import com.wobserver.vcollections.storages.sort.ISorter;
-import com.wobserver.vcollections.storages.sort.arrays.Quicksorter;
 
 public class VArrayList<T> implements List<T> {
 
@@ -122,16 +122,15 @@ public class VArrayList<T> implements List<T> {
 	public boolean remove(Object o) {
 		Long found = -1L;
 		Long index = 0L;
+		Predicate<T> find;
+		if (o == null) {
+			find = v -> v == null;
+		} else {
+			find = v -> o.equals(v);
+		}
 		for (Iterator<T> it = this.iterator(); it.hasNext(); ++index) {
 			T value = it.next();
-			if (o == null) {
-				if (value == null) {
-					found = index;
-					break;
-				}
-				continue;
-			}
-			if (o.equals(value)) {
+			if (find.test(value)) {
 				found = index;
 				break;
 			}
@@ -332,18 +331,17 @@ public class VArrayList<T> implements List<T> {
 	@Override
 	public int indexOf(Object o) {
 		Long index = 0L;
+		Predicate<T> isEqual;
+		if (o == null) {
+			isEqual = v -> v == null;
+		} else {
+			isEqual = v -> o.equals(v);
+		}
 		for (Iterator<T> it = this.iterator(); it.hasNext(); ++index) {
 			T value = it.next();
-			if (o == null) {
-				if (value == null) {
-					return index.intValue();
-				}
-				continue;
-			}
-			if (o.equals(value)) {
+			if (isEqual.test(value)) {
 				return index.intValue();
 			}
-
 		}
 		return -1;
 	}

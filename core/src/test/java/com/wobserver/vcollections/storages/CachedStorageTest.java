@@ -2,6 +2,7 @@ package com.wobserver.vcollections.storages;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import com.wobserver.vcollections.keygenerators.KeyGeneratorFactory;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,17 +10,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
-import com.wobserver.vcollections.keygenerators.KeyGeneratorFactory;
 
-class CachedStorageTest implements StorageTest<CachedStorage<String, String>> {
+class CachedStorageTest implements StorageTest<String, String, CachedStorage<String, String>> {
 
-	private IStorage<String, String> makeStorage(long maxSize, boolean onCreate, boolean onRead, boolean onUpdate, String... items) {
+	private IStorage<String, String> makeStorage(long maxSize, boolean onCreate, boolean onRead, boolean onUpdate, Map.Entry<String, String>... entries) {
 		Map<String, String> pairs = new HashMap<>();
-		if (items != null) {
-			for (int i = 0; i + 1 < items.length; i += 2) {
-				String key = items[i];
-				String value = items[i + 1];
-				pairs.put(key, value);
+		if (entries != null) {
+			for (Map.Entry<String, String> entry : entries) {
+				pairs.put(entry.getKey(), entry.getValue());
 			}
 		}
 
@@ -32,9 +30,24 @@ class CachedStorageTest implements StorageTest<CachedStorage<String, String>> {
 		return result;
 	}
 
+
 	@Override
-	public IStorage<String, String> makeStorage(long maxSize, String... items) {
-		return makeStorage(maxSize, false, true, false, items);
+	public String toKey(String key) {
+		return key;
+	}
+
+	@Override
+	public String toValue(String value) {
+		return value;
+	}
+
+	@Override
+	public IStorage<String, String> makeStorage(long maxSize, Map.Entry<String, String>... entries) {
+		return makeStorage(maxSize, false, true, false, entries);
+	}
+
+	public IStorage<String, String> makeStorage(String... items) {
+		return makeStorage(IStorage.NO_MAX_SIZE, false, true, false, toEntries(items));
 	}
 
 	private Stream<Map.Entry<String, CachedStorage<String, String>>> iCacheStream(String... items) {
@@ -48,7 +61,7 @@ class CachedStorageTest implements StorageTest<CachedStorage<String, String>> {
 			String configuration = String.format("ICache configuration: onCreate: %s, onRead: %s, onUpdate: %s",
 					onCreate, onRead, onUpdate);
 			CachedStorage<String, String> iCache = (CachedStorage<String, String>)
-					makeStorage(IStorage.NO_MAX_SIZE, onCreate, onRead, onUpdate, items);
+					makeStorage(IStorage.NO_MAX_SIZE, onCreate, onRead, onUpdate, toEntries(items));
 
 			return new AbstractMap.SimpleEntry(configuration, iCache);
 
@@ -225,7 +238,7 @@ class CachedStorageTest implements StorageTest<CachedStorage<String, String>> {
 	public void shouldHaveHitAfterRead() {
 		// Given
 		CachedStorage<String, String> cachedStorage = (CachedStorage<String, String>) makeStorage(IStorage.NO_MAX_SIZE,
-				false, true, false, "k1", "v1");
+				false, true, false, toEntry("k1", "v1"));
 
 		// When
 		cachedStorage.read("k1");
@@ -251,7 +264,7 @@ class CachedStorageTest implements StorageTest<CachedStorage<String, String>> {
 	public void shouldNotHaveHitAfterRead() {
 		// Given
 		CachedStorage<String, String> cachedStorage = (CachedStorage<String, String>) makeStorage(IStorage.NO_MAX_SIZE,
-				true, false, true, "k1", "v1");
+				true, false, true, toEntry("k1", "v1"));
 
 		// When
 		cachedStorage.read("k1");

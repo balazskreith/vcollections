@@ -1,12 +1,12 @@
 package com.wobserver.vcollections.storages;
 
+import com.wobserver.vcollections.keygenerators.KeyGeneratorFactory;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import com.wobserver.vcollections.keygenerators.KeyGeneratorFactory;
 
-class ClusteredVStorageTest implements StorageTest<ClusteredVStorage<String, String>> {
+class ClusteredVStorageTest implements StorageTest<String, String, ClusteredVStorage<String, String>> {
 
 	private IStorage<String, String> makeStorage(IStorage<String, String> storage1, IStorage<String, String> storage2, Map<String, String> initialEntries, long maxSize) {
 		IStorage<String, String> result = new ClusteredVStorage<String, String>(initialEntries, maxSize, new KeyGeneratorFactory().make(String.class), storage1, storage2);
@@ -14,13 +14,21 @@ class ClusteredVStorageTest implements StorageTest<ClusteredVStorage<String, Str
 	}
 
 	@Override
-	public IStorage<String, String> makeStorage(long maxSize, String... items) {
+	public String toKey(String key) {
+		return key;
+	}
+
+	@Override
+	public String toValue(String value) {
+		return value;
+	}
+
+	@Override
+	public IStorage<String, String> makeStorage(long maxSize, Map.Entry<String, String>... entries) {
 		Map<String, String> pairs = new HashMap<>();
-		if (items != null) {
-			for (int i = 0; i + 1 < items.length; i += 2) {
-				String key = items[i];
-				String value = items[i + 1];
-				pairs.put(key, value);
+		if (entries != null) {
+			for (Map.Entry<String, String> entry : entries) {
+				pairs.put(entry.getKey(), entry.getValue());
 			}
 		}
 		IStorage<String, String> result = makeStorage(
@@ -29,7 +37,6 @@ class ClusteredVStorageTest implements StorageTest<ClusteredVStorage<String, Str
 				pairs,
 				maxSize
 		);
-
 		return result;
 	}
 

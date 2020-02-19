@@ -1,13 +1,10 @@
-# Virtualized Collections for Microservice Architecture (com.wobserver.vcollections)
+# Virtualized Collections for Microservice Architecture
+
+## Quick Start
 
 ## Architecture
-
-## Implementations
-
-## Contributions
 
 ## License
 
 
-## Yml configuration:
 

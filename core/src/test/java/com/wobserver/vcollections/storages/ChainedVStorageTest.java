@@ -1,18 +1,18 @@
 package com.wobserver.vcollections.storages;
 
 import static org.junit.jupiter.api.Assertions.*;
+import com.wobserver.vcollections.keygenerators.KeyGeneratorFactory;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import com.wobserver.vcollections.keygenerators.KeyGeneratorFactory;
 
 /**
  * Test a storage for general capabilities according to the IStorage interface
  * The target storage needs to inherit this one and overwrite the makeStorage protected methods to test the actual storage
  */
 
-public class ChainedVStorageTest implements StorageTest<ChainedVStorage<String, String>> {
+public class ChainedVStorageTest implements StorageTest<String, String, ChainedVStorage<String, String>> {
 
 	private IStorage<String, String> makeStorage(IStorage<String, String> storage1, IStorage<String, String> storage2, Map<String, String> initialEntries, long maxSize) {
 		IStorage<String, String> result = new ChainedVStorage<>(initialEntries, maxSize, new KeyGeneratorFactory().make(String.class), storage1, storage2);
@@ -20,13 +20,21 @@ public class ChainedVStorageTest implements StorageTest<ChainedVStorage<String, 
 	}
 
 	@Override
-	public IStorage<String, String> makeStorage(long maxSize, String... items) {
+	public String toKey(String key) {
+		return key;
+	}
+
+	@Override
+	public String toValue(String value) {
+		return value;
+	}
+
+	@Override
+	public IStorage<String, String> makeStorage(long maxSize, Map.Entry<String, String>... entries) {
 		Map<String, String> pairs = new HashMap<>();
-		if (items != null) {
-			for (int i = 0; i + 1 < items.length; i += 2) {
-				String key = items[i];
-				String value = items[i + 1];
-				pairs.put(key, value);
+		if (entries != null) {
+			for (Map.Entry<String, String> entry : entries) {
+				pairs.put(entry.getKey(), entry.getValue());
 			}
 		}
 		IStorage<String, String> result = makeStorage(
@@ -35,10 +43,8 @@ public class ChainedVStorageTest implements StorageTest<ChainedVStorage<String, 
 				pairs,
 				maxSize
 		);
-
 		return result;
 	}
-
 
 	/**
 	 * <p>Given</p>: two com.wobserver.vcollections.storages, with unlimited capacity

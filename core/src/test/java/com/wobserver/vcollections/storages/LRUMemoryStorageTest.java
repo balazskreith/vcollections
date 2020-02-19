@@ -1,21 +1,29 @@
 package com.wobserver.vcollections.storages;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import com.wobserver.vcollections.keygenerators.KeyGeneratorFactory;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import com.wobserver.vcollections.keygenerators.KeyGeneratorFactory;
 
-class LRUMemoryStorageTest implements StorageTest<LRUMemoryStorage<String, String>> {
+class LRUMemoryStorageTest implements StorageTest<String, String, LRUMemoryStorage<String, String>> {
 
 	@Override
-	public IStorage<String, String> makeStorage(long maxSize, String... items) {
+	public String toKey(String key) {
+		return key;
+	}
+
+	@Override
+	public String toValue(String value) {
+		return value;
+	}
+
+	@Override
+	public IStorage<String, String> makeStorage(long maxSize, Map.Entry<String, String>... entries) {
 		Map<String, String> pairs = new HashMap<>();
-		if (items != null) {
-			for (int i = 0; i + 1 < items.length; i += 2) {
-				String key = items[i];
-				String value = items[i + 1];
-				pairs.put(key, value);
+		if (entries != null) {
+			for (Map.Entry<String, String> entry : entries) {
+				pairs.put(entry.getKey(), entry.getValue());
 			}
 		}
 		LRUMemoryStorage<String, String> result = new LRUMemoryStorage<>(maxSize);
@@ -23,6 +31,7 @@ class LRUMemoryStorageTest implements StorageTest<LRUMemoryStorage<String, Strin
 		result.setKeyGenerator(new KeyGeneratorFactory().make(String.class));
 		return result;
 	}
+
 
 	@Override
 	public void shouldThrowOutOfSpaceExceptionAfterCreate() {
@@ -44,7 +53,7 @@ class LRUMemoryStorageTest implements StorageTest<LRUMemoryStorage<String, Strin
 	@Test
 	public void shouldRemoveNotUsedItems() {
 		// Given
-		IStorage<String, String> storage = makeStorage(2, "key1", "value1", "key2", "value2");
+		IStorage<String, String> storage = makeStorage(2, toEntries("key1", "value1", "key2", "value2"));
 
 		// When
 		storage.read("key2");

@@ -1,83 +1,35 @@
 package com.wobserver.vcollections.storages;
 
-import com.mongodb.MongoClientURI;
+import static com.mongodb.client.model.Filters.eq;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.*;
+import com.mongodb.client.model.ReplaceOptions;
+import java.util.AbstractMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import org.bson.Document;
 
 public class MongoStorage<K, V> implements IStorage<K, V> {
 
-	private static <TK, TV> Function<TV, TK> makeKeyExtractor(Class<TV> valueType, String keyFieldName) {
-		if (keyFieldName.length() < 1) {
-			return null;
-		}
-		Method[] methods = valueType.getMethods();
-		if (methods != null) {
-			final String methodName = "get" + Character.toUpperCase(keyFieldName.charAt(0)) + (keyFieldName.length() < 2 ? "" : keyFieldName.substring(1));
-			Optional<Method> findMethod = Arrays.asList(methods).stream().filter(method -> method.getName().equals(methodName)).findFirst();
-			if (findMethod.isPresent()) {
-				final Method keyMethod = findMethod.get();
-				return new Function<TV, TK>() {
-					@Override
-					public TK apply(TV value) {
-						try {
-							return (TK) keyMethod.invoke(value);
-						} catch (IllegalAccessException e) {
-							throw new RuntimeException(e);
-						} catch (InvocationTargetException e) {
-							throw new RuntimeException(e);
-						}
-					}
-				};
-			}
-		}
-		Field[] fields = valueType.getFields();
-		if (fields == null) {
-			return null;
-		}
-		Optional<Field> findField = Arrays.asList(fields).stream().filter(field -> field.getName().equals(keyFieldName)).findFirst();
-		if (findField.isPresent()) {
-			final Field keyField = findField.get();
-			return new Function<TV, TK>() {
-				@Override
-				public TK apply(TV value) {
-					try {
-						return (TK) keyField.get(value);
-					} catch (IllegalAccessException e) {
-						throw new RuntimeException(e);
-					}
-				}
-			};
-		}
-		return null;
-	}
-
 	private final long capacity;
 	private final Class<V> valueType;
-	private final MongoConnection<V> connection;
-	private final String keyFieldName;
 	private final Function<V, K> keyExtractor;
+	private final MongoConnection<V> connection;
+	private final String keyFieldInDocument;
 	private final CapacityChecker<K> capacityChecker;
+	private final BiConsumer<V, V> swapper;
 
-	public MongoStorage(MongoClientURI uri, String databaseName, String collectionName, String keyFieldName, long capacity, Class<V> valueType) {
-		this.connection = new MongoConnection<>(uri, databaseName, collectionName, valueType);
+	public MongoStorage(MongoConnection<V> connection, Function<V, K> keyExtractor, String keyFieldInDocument, long capacity, Class<V> valueType, BiConsumer<V, V> swapper) {
 		this.capacity = capacity;
 		this.valueType = valueType;
-
-		this.keyFieldName = keyFieldName;
+		this.keyExtractor = keyExtractor;
+		this.keyFieldInDocument = keyFieldInDocument;
 		this.capacityChecker = new CapacityChecker<>(this, capacity);
-
-		if (keyFieldName == null) { // identity
-			this.keyExtractor = obj -> (K) obj;
-		} else {
-			this.keyExtractor = makeKeyExtractor(valueType, keyFieldName);
-		}
+		this.connection = connection;
+		this.swapper = swapper;
 	}
 
 
@@ -95,31 +47,36 @@ public class MongoStorage<K, V> implements IStorage<K, V> {
 
 	@Override
 	public V read(Object key) {
-		FindIterable<V> iterable = this.connection.getCollection().find(Filters.eq(this.keyFieldName, key));
+		FindIterable<V> iterable = this.connection.getCollection().find(eq(this.keyFieldInDocument, key));
 		if (iterable == null) {
 			return null;
 		}
-		return iterable.first();
+		V result = iterable.first();
+		return result;
 	}
 
 	@Override
 	public void update(K key, V value) {
-		if (this.has(key)) {
-			this.connection.getCollection().replaceOne(Filters.eq(key), value);
-		} else {
-			this.capacityChecker.checkForCreate();
-			this.connection.getCollection().insertOne(value);
-		}
+		this.capacityChecker.checkForUpdate(key);
+		this.connection.getCollection().replaceOne(
+				Filters.eq(this.keyFieldInDocument, key),
+				value,
+				new ReplaceOptions().upsert(true).bypassDocumentValidation(true)
+		);
 	}
 
 	@Override
 	public void delete(Object key) {
-		this.connection.getCollection().deleteOne(Filters.eq(this.keyFieldName, key));
+		this.connection.getCollection().deleteOne(eq(this.keyFieldInDocument, key));
 	}
 
 	@Override
 	public boolean has(Object key) {
-		return false;
+		FindIterable<V> iterable = this.connection.getCollection().find(eq(this.keyFieldInDocument, key));
+		if (iterable == null) {
+			return false;
+		}
+		return iterable.first() != null;
 	}
 
 	@Override
@@ -132,7 +89,7 @@ public class MongoStorage<K, V> implements IStorage<K, V> {
 		if (this.capacity == IStorage.NO_MAX_SIZE) {
 			return false;
 		}
-		return this.connection.getCollectionSize() <= this.capacity;
+		return this.capacity <= this.connection.getCollectionSize();
 	}
 
 	@Override
@@ -159,4 +116,21 @@ public class MongoStorage<K, V> implements IStorage<K, V> {
 		};
 	}
 
+	@Override
+	public void swap(K key1, K key2) {
+		if (this.swapper == null) {
+			throw new NullPointerException();
+		}
+		V value1 = this.read(key1);
+		if (value1 == null) {
+			throw new KeyNotFoundException(key1.toString());
+		}
+		V value2 = this.read(key2);
+		if (value2 == null) {
+			throw new KeyNotFoundException(key2.toString());
+		}
+		swapper.accept(value1, value2);
+		this.update(key1, value1);
+		this.update(key2, value2);
+	}
 }
