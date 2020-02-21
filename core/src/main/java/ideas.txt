@@ -8,13 +8,6 @@ introduce transactions for batched create, update, and delete operations so clus
 
 Integrity checker for different virtual com.wobserver.vcollections.storages
 
-Builders:
-  Currently the builders are using a Map<String, Object> to extract configuration.
-  Thats a convinient format, as json and yaml can be converted into map by an objectmapper.
-  Inside the builders the objectmapper can be used to convert the configuration into a POJO,
-  and javax can be used to validate the pojo. With that we can provide a safe way to build storages.
-
-
 Synchronizer possibility for replicated storage
 
 Projector, Groupper, Streamer, Listener, Where conditional.
@@ -41,3 +34,8 @@ interface ListStorage<K, V> extends IStorage<K, List<V>>
 interface Groupper<K, V> implements IStorage<K, List<V>>:
  - it extends
  - It solves somehow that inserted V is in a commulative list and insert it in an efficient way
+
+
+ArrayList, and LinkedList should have arbitrary key and not a fixed one.
+This involves a couple of restriction in case of linkedlist, that a value should
+hold information about the next and the prev item.

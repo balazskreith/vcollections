@@ -1,5 +1,7 @@
 package com.wobserver.vcollections.builders;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.fasterxml.jackson.dataformat.yaml.snakeyaml.Yaml;
@@ -32,8 +34,6 @@ public class StorageProvider {
 	 */
 	private Map<String, StorageBuilder> builders = new HashMap<>();
 
-
-
 	/**
 	 * Gets storage based on profile key added as configuration.
 	 * @param key The key for the profile the storage configuration belongs to.
@@ -45,33 +45,60 @@ public class StorageProvider {
 		StorageBuilder storageBuilder = this.builders.get(key);
 		return storageBuilder.build();
 	}
-	/**
-	 * Adds a yaml structured string to process configuration
-	 * @param yaml a string structured as yaml
-	 * @throws IOException if the parsing of the yaml string is unsuccessful
-	 */
-	public void add(String yaml) throws IOException {
-		YAMLFactory yamlFactory = new YAMLFactory();
-		YAMLMapper mapper = new YAMLMapper(yamlFactory);
-		Map<String, Object> input = mapper.readValue(yaml, Map.class);
-		this.evaluate(input);
-	}
-
+	
 	/**
 	 * Adds a Map based configuration to process for
 	 * @param configurations the configurations
 	 */
-	public void add(Map<String, Object> configurations) {
+	public void addYamlString(Map<String, Object> configurations) {
 		Map<String, Object> unmodifiableConfigurations = Collections.unmodifiableMap(configurations);
 		this.evaluate(unmodifiableConfigurations);
 	}
 
 	/**
+	 * Add a json file contains a configuration to build the storage
+	 * @param jsonFile the file pointing to the json file holding the configuration
+	 * @throws IOException when the an error occured during the reading or converting
+	 */
+	public void addJsonFile(File jsonFile) throws IOException {
+		ObjectMapper mapper = new ObjectMapper();
+		Map<String, Object> storagesMap = mapper.readValue(
+				jsonFile, new TypeReference<Map<String, Object>>() {
+				});
+		this.evaluate(storagesMap);
+	}
+
+	/**
+	 * Add a json string contains a configuration to build the storage
+	 * @param jsonString the string holding the json file holding the configuration
+	 * @throws IOException when the an error occured during the reading or converting
+	 */
+	public void addJsonString(String jsonString) throws IOException {
+		ObjectMapper mapper = new ObjectMapper();
+		Map<String, Object> storagesMap = mapper.readValue(
+				jsonString, new TypeReference<Map<String, Object>>() {
+				});
+		this.evaluate(storagesMap);
+	}
+
+	/**
+	 * Adds a yaml structured string to process configuration
+	 * @param yaml a string structured as yaml
+	 * @throws IOException if the parsing of the yaml string is unsuccessful
+	 */
+	public void addYamlString(String yaml) throws IOException {
+		YAMLFactory yamlFactory = new YAMLFactory();
+		YAMLMapper mapper = new YAMLMapper(yamlFactory);
+		Map<String, Object> input = mapper.readValue(yaml, Map.class);
+		this.evaluate(input);
+	}
+	
+	/**
 	 * Adds a yaml file to process as a configuration
 	 * @param yamlFile the file name to process
 	 * @throws IOException if the parsing of the yaml string is unsuccessful
 	 */
-	public void add(File yamlFile) throws IOException {
+	public void addYamlFile(File yamlFile) throws IOException {
 		Map<String, Object> storagesMap = null;
 		try (InputStream input = new FileInputStream(yamlFile)) {
 			Yaml yaml = new Yaml(new SafeConstructor());
@@ -93,7 +120,7 @@ public class StorageProvider {
 		}
 		this.evaluate(storagesMap);
 	}
-
+	
 	private void evaluate(Map<String, Object> input) {
 		List<Map<String, Object>> storages = (List<Map<String, Object>>) input.get(STORAGES_CONFIG_KEY);
 		for (Map<String, Object> storage : storages) {

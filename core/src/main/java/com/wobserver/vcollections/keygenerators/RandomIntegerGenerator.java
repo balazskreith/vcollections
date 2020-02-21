@@ -5,14 +5,14 @@ import java.util.Random;
 /**
  * Represent a {@link IKeyGenerator} for integers
  */
-public class IntegerGenerator extends AbstractGenerator<Integer> {
+public class RandomIntegerGenerator extends AbstractGenerator<Integer> {
 
 	private Random random;
 
 	/**
 	 * Constructs a keygenerator for signed integers
 	 */
-	public IntegerGenerator() {
+	public RandomIntegerGenerator() {
 		super(0, 0);
 		this.random = new Random();
 		this.supplier = this.random::nextInt;
@@ -25,7 +25,7 @@ public class IntegerGenerator extends AbstractGenerator<Integer> {
 	 *
 	 * <p>Note</p> If minSize and maxSize are 0, then the generated numbers are 32 bit signed integers
 	 */
-	public IntegerGenerator(int minSize, int maxSize) {
+	public RandomIntegerGenerator(int minSize, int maxSize) {
 		super(minSize, maxSize);
 		this.random = new Random();
 		this.supplier = () -> this.random.nextInt(maxSize - minSize) + minSize;

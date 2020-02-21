@@ -6,40 +6,26 @@
 //import java.util.function.*;
 //import java.util.stream.Stream;
 //
-//public class VLinkedList2<K, V> implements List<V>, Deque<V> {
+//public class VLinkedList3<K, V> implements List<V>, Deque<V> {
 //
-//	private V head;
-//	private V tail;
-//	private IStorage<K, V> storage;
+//	private Node head;
+//	private Node tail;
 //	private final Function<V, K> keyGetter;
 //	private final Function<V, K> nextGetter;
 //	private final Function<V, K> prevGetter;
 //	private final BiConsumer<V, K> nextSetter;
 //	private final BiConsumer<V, K> prevSetter;
+//	private IStorage<K, V> storage;
 //
-//
-//
-//
-//	public VLinkedList2(IStorage<K, V> storage, V head, V tail, Class<V> valueType, String prevFieldName, String nextFieldName) {
+//	public VLinkedList3(IStorage<K, V> storage, K headUUID, K tailUUID, Function<V, K> keyGetter, Function<V, K> nextGetter, Function<V, K> prevGetter, BiConsumer<V, K> nextSetter, BiConsumer<V, K> prevSetter) {
 //		this.storage = storage;
-//	}
-//
-//	private V nextNode(V actual) {
-//		K nextKey = this.nextGetter.apply(actual);
-//		if (nextKey == null) {
-//			return null;
-//		}
-//		V result = this.storage.read(nextKey);
-//		return result;
-//	}
-//
-//	private V prevNode(V actual) {
-//		K prevKey = this.prevGetter.apply(actual);
-//		if (prevKey == null) {
-//			return null;
-//		}
-//		V result = this.storage.read(prevKey);
-//		return result;
+//		this.head = this.load(headUUID);
+//		this.tail = this.load(tailUUID);
+//		this.keyGetter = keyGetter;
+//		this.nextGetter = nextGetter;
+//		this.prevGetter = prevGetter;
+//		this.nextSetter = nextSetter;
+//		this.prevSetter = prevSetter;
 //	}
 //
 //	@Override
@@ -54,7 +40,7 @@
 //
 //	@Override
 //	public boolean contains(Object o) {
-//		V node = this.findFirst(o, null);
+//		Node node = this.findFirst(o, null);
 //		return node != null;
 //	}
 //
@@ -63,7 +49,7 @@
 //		return new NodeForwardIterator<V>() {
 //			@Override
 //			public V next() {
-//				V node = this.nextNode();
+//				Node node = this.nextNode();
 //				if (node == null) {
 //					return null;
 //				}
@@ -77,7 +63,7 @@
 //		return new NodeBackwardIterator<V>() {
 //			@Override
 //			public V next() {
-//				IVLinkedListNode<V> node = this.nextNode();
+//				Node node = this.nextNode();
 //				if (node == null) {
 //					return null;
 //				}
@@ -91,9 +77,20 @@
 //		if (action == null) {
 //			throw new NullPointerException();
 //		}
-//		V node;
-//		for (node = this.head; node != null; node = this.storage.read(this.nextGetter.apply(node))) {
-//			action.accept(node);
+//		Node node;
+//		for (node = this.head; node != null; node = node.getNextNode()) {
+//			V before = node.getValue();
+//			action.accept(before);
+//			V after = node.getValue();
+//			if (before == null) {
+//				if (after != null) {
+//					node.value = after;
+//					node.save();
+//				}
+//			} else if (!before.equals(after)) {
+//				node.value = after;
+//				node.save();
+//			}
 //		}
 //	}
 //
@@ -121,13 +118,14 @@
 //
 //	@Override
 //	public void addFirst(V v) {
+//		Node node;
 //		if (this.head == null) {
-//			this.head = this.tail = v;
-//			K key = this.keyGetter.apply(v);
+//			this.head = this.tail = node = new Node(null, null, v);
+//			node.save();
 //			return;
 //		}
-//		node = new Node(null, this.head.getUUID(), v);
-//		this.head.prevUUID = node.getUUID();
+//		node = new Node(null, this.head.getKey(), v);
+//		this.head.prevKey = node.getKey();
 //		this.head.save();
 //		this.head = node;
 //	}
@@ -141,9 +139,9 @@
 //			return;
 //		}
 //
-//		node = new Node(this.tail.getUUID(), null, v);
+//		node = new Node(this.tail.getKey(), null, v);
 //		node.save();
-//		this.tail.nextUUID = node.getUUID();
+//		this.tail.nextKey = node.getKey();
 //		this.tail.save();
 //		this.tail = node;
 //	}
@@ -165,7 +163,7 @@
 //		if (this.head == null) {
 //			return null;
 //		}
-//		V result = this.head;
+//		V result = this.head.getValue();
 //		this.unlinkAndSave(this.head);
 //		return result;
 //	}
@@ -175,7 +173,7 @@
 //		if (this.tail == null) {
 //			return null;
 //		}
-//		V result = this.tail;
+//		V result = this.tail.getValue();
 //		this.unlinkAndSave(this.tail);
 //		return result;
 //	}
@@ -321,26 +319,26 @@
 //				first = last = new Node(null, null, value);
 //				continue;
 //			}
-//			Node node = new Node(last.uuid, null, value);
-//			last.nextUUID = node.uuid;
+//			Node node = new Node(last.key, null, value);
+//			last.nextKey = node.key;
 //			last.save();
 //			last = node;
 //		}
 //
-//		last.nextUUID = after.uuid;
+//		last.nextKey = after.key;
 //		last.save();
 //
 //		if (after == this.head) {
 //			this.head = first;
 //		} else {
 //			Node before = after.getPrevNode();
-//			before.nextUUID = first.uuid;
+//			before.nextKey = first.key;
 //			before.save();
-//			first.prevUUID = before.uuid;
+//			first.prevKey = before.key;
 //			first.save();
 //		}
 //
-//		after.prevUUID = last.uuid;
+//		after.prevKey = last.key;
 //		after.save();
 //		return true;
 //	}
@@ -380,7 +378,7 @@
 //			}
 //
 //			Node next = null;
-//			if (node.getNextUUID() != null) {
+//			if (node.getNextKey() != null) {
 //				next = node.getNextNode();
 //			}
 //			this.unlinkAndSave(node);
@@ -438,8 +436,8 @@
 //	@Override
 //	public void add(int index, V element) {
 //		Node before = this.getNode(index);
-//		Node node = new Node(before.getUUID(), before.getNextUUID(), element);
-//		before.nextUUID = (node.getNextUUID());
+//		Node node = new Node(before.getKey(), before.getNextKey(), element);
+//		before.nextKey = (node.getNextKey());
 //		before.save();
 //		node.save();
 //	}
@@ -512,7 +510,7 @@
 //		private Long position;
 //
 //		private NodeForwardListiterator() {
-//			this.actual = VLinkedList2.this.head;
+//			this.actual = VLinkedList3.this.head;
 //			this.position = 0L;
 //		}
 //
@@ -527,7 +525,7 @@
 //			if (!this.started) {
 //				return this.actual != null;
 //			}
-//			return this.actual.getNextUUID() != null;
+//			return this.actual.getNextKey() != null;
 //		}
 //
 //		public Node nextNode() {
@@ -545,10 +543,10 @@
 //			if (!this.started) {
 //				return this.actual != null;
 //			}
-//			return this.actual.getPrevUUID() != null;
+//			return this.actual.getPrevKey() != null;
 //		}
 //
-//		public IVLinkedListNode<V> prevNode() {
+//		public Node prevNode() {
 //			if (!this.started) {
 //				this.started = true;
 //				return this.actual;
@@ -560,7 +558,7 @@
 //
 //		@Override
 //		public V previous() {
-//			IVLinkedListNode<V> node = this.prevNode();
+//			Node node = this.prevNode();
 //			if (node == null) {
 //				return null;
 //			}
@@ -569,7 +567,7 @@
 //
 //		@Override
 //		public V next() {
-//			IVLinkedListNode<V> node = this.nextNode();
+//			Node node = this.nextNode();
 //			if (node == null) {
 //				return null;
 //			}
@@ -587,7 +585,7 @@
 //		@Override
 //		public int previousIndex() {
 //			if (!this.started) {
-//				return VLinkedList2.this.size() - 1;
+//				return VLinkedList3.this.size() - 1;
 //			}
 //			return this.position.intValue() - 1;
 //		}
@@ -610,21 +608,21 @@
 //		public void add(V value) {
 //			if (this.actual == null) {
 //				if (!this.started) { // we have not started it, so this list is empty
-//					VLinkedList2.this.addFirst(value);
+//					VLinkedList3.this.addFirst(value);
 //				} else { // we stared, and rerached the last
-//					VLinkedList2.this.addLast(value);
+//					VLinkedList3.this.addLast(value);
 //				}
 //				return;
 //			}
-//			if (this.actual.getNextUUID() == null) { // last node
-//				VLinkedList2.this.addLast(value);
+//			if (this.actual.getNextKey() == null) { // last node
+//				VLinkedList3.this.addLast(value);
 //				return;
 //			}
 //			// we have next, and we have prev
 //			Node next = this.actual.getNextNode();
-//			Node node = new Node(this.actual.getUUID(), this.actual.getNextUUID(), value);
-//			this.actual.nextUUID = (node.getUUID());
-//			next.prevUUID = (node.getUUID());
+//			Node node = new Node(this.actual.getKey(), this.actual.getNextKey(), value);
+//			this.actual.nextKey = (node.getKey());
+//			next.prevKey = (node.getKey());
 //
 //			node.save();
 //			this.actual.save();
@@ -637,7 +635,7 @@
 //		private boolean started = false;
 //
 //		private NodeForwardIterator() {
-//			this.actual = VLinkedList2.this.head;
+//			this.actual = VLinkedList3.this.head;
 //		}
 //
 //		@Override
@@ -645,7 +643,7 @@
 //			if (this.actual == null) {
 //				return false;
 //			}
-//			return this.actual.getNextUUID() != null;
+//			return this.actual.getNextKey() != null;
 //		}
 //
 //		public Node nextNode() {
@@ -673,7 +671,7 @@
 //			if (this.actual == null) {
 //				return false;
 //			}
-//			return this.actual.getPrevUUID() != null;
+//			return this.actual.getPrevKey() != null;
 //		}
 //
 //		public Node nextNode() {
@@ -709,18 +707,18 @@
 //		return null;
 //	}
 //
-//	private V findFirst(Object o) {
+//	private Node findFirst(Object o) {
 //		return this.findFirst(o, null);
 //	}
 //
-//	private V findFirst(Object o, AtomicReference<Long> positionHolder) {
+//	private Node findFirst(Object o, AtomicReference<Long> positionHolder) {
 //		if (this.head == null) {
 //			return null;
 //		}
 //		long position = 0L;
-//		V result = null;
-//		Function<V, Boolean> tester = this.getTesterFor(o);
-//		for (V node = this.head; node != null; node = this.nextNode(node), ++position) {
+//		Node result = null;
+//		Function<Node, Boolean> tester = this.getTesterFor(o);
+//		for (Node node = this.head; node != null; node = node.getNextNode(), ++position) {
 //			if (tester.apply(node)) {
 //				result = node;
 //				break;
@@ -736,18 +734,18 @@
 //		return result;
 //	}
 //
-//	private V findLast(Object o) {
+//	private Node findLast(Object o) {
 //		return findLast(o, null);
 //	}
 //
-//	private V findLast(Object o, AtomicReference<Long> positionHolder) {
+//	private Node findLast(Object o, AtomicReference<Long> positionHolder) {
 //		if (this.tail == null) {
 //			return null;
 //		}
 //		long position = this.storage.entries() - 1L;
-//		V result = null;
-//		Function<V, Boolean> tester = this.getTesterFor(o);
-//		for (V node = this.tail; node != null; node = this.prevNode(node), --position) {
+//		Node result = null;
+//		Function<Node, Boolean> tester = this.getTesterFor(o);
+//		for (Node node = this.tail; node != null; node = node.getPrevNode(), --position) {
 //			if (tester.apply(node)) {
 //				result = node;
 //				break;
@@ -763,45 +761,127 @@
 //		return result;
 //	}
 //
-//	public void unlinkAndSave(K key, V node) {
-//		if (this.nextGetter.apply(node) == null && this.prevGetter.apply(node) == null) {
-//			this.head = VLinkedList2.this.tail = null;
-//			this.storage.delete(key);
+//	private Node load(K uuid) {
+//		if (this.head != null && this.head.key == uuid) {
+//			return this.head;
+//		}
+//		if (this.tail != null && this.tail.key == uuid) {
+//			return this.tail;
+//		}
+//		Node result = new Node();
+//		V value = this.storage.read(uuid);
+//		result.key = uuid;
+//		result.nextKey = this.nextGetter.apply(value);
+//		result.prevKey = this.prevGetter.apply(value);
+//		result.value = value;
+//		return result;
+//	}
+//
+//
+//	public void unlinkAndSave(Node node) {
+//		if (node.nextKey == null && node.prevKey == null) {
+//			this.head = VLinkedList3.this.tail = null;
+//			this.storage.delete(node.key);
 //			return;
 //		}
-//		V prev;
-//		V next;
-//		if (this.nextGetter.apply(node) == null) {
-//			prev = this.prevNode(node);
-//			this.nextSetter.accept(prev, null);
-//
+//		Node prev;
+//		Node next;
+//		if (node.nextKey == null) {
+//			prev = node.getPrevNode();
+//			prev.nextKey = null;
 //			prev.save();
-//			node.prevUUID = null;
-//			this.storage.delete(node.uuid);
+//			node.prevKey = null;
+//			this.storage.delete(node.key);
 //			this.tail = prev;
 //			return;
 //		} else {
 //			next = node.getNextNode();
 //		}
 //
-//		if (node.prevUUID == null) {
+//		if (node.prevKey == null) {
 //			next = node.getNextNode();
-//			next.prevUUID = null;
+//			next.prevKey = null;
 //			next.save();
-//			node.nextUUID = null;
-//			this.storage.delete(node.uuid);
+//			node.nextKey = null;
+//			this.storage.delete(node.key);
 //			this.head = next;
 //			return;
 //		} else {
 //			prev = node.getPrevNode();
 //		}
 //
-//		next.prevUUID = prev.uuid;
-//		prev.nextUUID = next.uuid;
-//		node.nextUUID = node.prevUUID = null;
+//		next.prevKey = prev.key;
+//		prev.nextKey = next.key;
+//		node.nextKey = node.prevKey = null;
 //		prev.save();
 //		next.save();
-//		this.storage.delete(node.uuid);
+//		this.storage.delete(node.key);
+//	}
+//
+//	public void linkAfter(Node node) {
+//
+//	}
+//
+//	public void linkBefore(Node node) {
+//
+//	}
+//
+//	private class Node {
+//
+//		final K key;
+//		final K nextKey;
+//		final K prevKey;
+//		V value;
+//
+//		public Node(K prevKey, K nextKey, V value) {
+//			this.key = VLinkedList3.this.keyGetter.apply(value);
+//			this.nextKey = nextKey;
+//			this.prevKey = prevKey;
+//			this.value = value;
+//		}
+//
+//		void setKey(K value) {
+//			
+//		}
+//
+//		void setValue(V value) {
+//
+//		}
+//
+//		K getNextKey() {
+//			return this.nextKey;
+//		}
+//
+//		K getPrevKey() {
+//			return this.prevKey;
+//		}
+//
+//		Node getNextNode() {
+//			if (this.nextKey == null) {
+//				return null;
+//			}
+//			return VLinkedList3.this.load(this.nextKey);
+//		}
+//
+//		Node getPrevNode() {
+//			if (this.prevKey == null) {
+//				return null;
+//			}
+//			return VLinkedList3.this.load(this.prevKey);
+//		}
+//
+//		public V getValue() {
+//			return this.value;
+//		}
+//
+//		public void save() {
+//			VLinkedList3.this.storage.update(this.key, this.value);
+//		}
+//		
+//		K getKey() {
+//			return this.key;
+//		}
+//
 //	}
 //
 //	@Override

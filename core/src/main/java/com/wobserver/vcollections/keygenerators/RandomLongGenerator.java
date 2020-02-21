@@ -2,7 +2,7 @@ package com.wobserver.vcollections.keygenerators;
 
 import java.util.Random;
 
-public class LongGenerator extends AbstractGenerator<Long> {
+public class RandomLongGenerator extends AbstractGenerator<Long> {
 
 	private Random random;
 
@@ -10,7 +10,7 @@ public class LongGenerator extends AbstractGenerator<Long> {
 	 * Generate random number by using the provided Random number generator
 	 * @param random
 	 */
-	public LongGenerator(Random random) {
+	public RandomLongGenerator(Random random) {
 		super(0, 0);
 		this.random = random;
 		this.supplier = this.random::nextLong;
@@ -19,7 +19,7 @@ public class LongGenerator extends AbstractGenerator<Long> {
 	/**
 	 * Constructs random 64 bits signed integers
 	 */
-	public LongGenerator() {
+	public RandomLongGenerator() {
 		super(0, 0);
 		this.random = new Random();
 		this.supplier = this.random::nextLong;
@@ -31,7 +31,7 @@ public class LongGenerator extends AbstractGenerator<Long> {
 	 *
 	 * <p>Note</p> If minSize and maxSize are 0, then the generated numbers are 64 bit signed integers
 	 */
-	public LongGenerator(long minSize, long maxSize) {
+	public RandomLongGenerator(long minSize, long maxSize) {
 		super(minSize, maxSize);
 		this.random = new Random();
 		this.supplier = () -> {

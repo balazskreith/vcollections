@@ -6,12 +6,12 @@ import java.util.UUID;
 /**
  * Represents a Generator for Strings
  */
-public class StringGenerator extends AbstractGenerator<String> {
+public class RandomStringGenerator extends AbstractGenerator<String> {
 
 	/**
 	 * Generates a random 46 character long string by using an UUID generator
 	 */
-	public StringGenerator() {
+	public RandomStringGenerator() {
 		this.supplier = UUID.randomUUID()::toString;
 	}
 
@@ -20,7 +20,7 @@ public class StringGenerator extends AbstractGenerator<String> {
 	 * @param minSize THe minimal size of the generated stings
 	 * @param maxSize The maximal size of the generated strings
 	 */
-	public StringGenerator(int minSize, int maxSize) {
+	public RandomStringGenerator(int minSize, int maxSize) {
 		if (minSize == maxSize && minSize == 0) {
 			this.supplier = UUID.randomUUID()::toString;
 		} else {

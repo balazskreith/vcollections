@@ -6,10 +6,10 @@ import java.util.Map;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 
-class IntegerGeneratorTest {
+class RandomIntegerGeneratorTest {
 
 	private IKeyGenerator<Integer> createGenerator(int minSize, int maxSize, Predicate<Integer> tester) {
-		IntegerGenerator result = new IntegerGenerator(minSize, maxSize);
+		RandomIntegerGenerator result = new RandomIntegerGenerator(minSize, maxSize);
 		result.setMaxRetry(500);
 		result.setup(tester);
 		return result;

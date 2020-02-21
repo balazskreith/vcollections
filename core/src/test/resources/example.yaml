@@ -1,0 +1,35 @@
+storages:
+  - key: memoryStorageExample
+    builder: MemoryStorageBuilder
+      configuration:
+        capacity: -1                 # optional, default: -1, means infinity
+  - key: memoryCacheExample
+    builder: CachedStorageBuilder
+      configuration:
+        superset: 
+          profileKey: memoryStorageExample
+        subset:
+          builder: LRUMemoryStorageBuilder
+            configuration:
+              capacity: 100
+              accessOrder: True
+        onCreate: False
+        onUpdate: False
+        onRead: False
+  - key: chainedStorageExample
+    builder: ChainedStorageBuilder
+      configuration:
+        storages:
+          - key: storage1
+            profile: memoryStorageExample
+          - key: storage2
+            builder: MemoryStorageBuilder
+            configuration:
+              capacity: -1
+  - key: fileStorageExample
+    builder: FileStorageBuilder
+      configuration:
+        mapper: ObjectMapper  # optional, default is ....ObjectMapper
+        valueType: classNameForValue
+        keyMapper: Long    # if no point, then it searches in the SimpleMapperFactory for Strings
+  - key: 

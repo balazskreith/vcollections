@@ -24,10 +24,25 @@ public class StorageBuilder extends AbstractStorageBuilder implements IStorageBu
 	public static final String CONFIGURATION_CONFIG_KEY = "configuration";
 
 	/**
+	 * If the storageprovider is set, then the builder can use profileKeys from there
+	 */
+	private StorageProvider storageProvider;
+	
+	/**
 	 * Constructs a {@link StorageBuilder}, with the embedded configuration.
 	 */
 	public StorageBuilder() {
 
+	}
+
+	/**
+	 * Sets 
+	 * @param storageProvider
+	 * @return
+	 */
+	public StorageBuilder withStorageProvider(StorageProvider storageProvider) {
+		this.storageProvider = storageProvider;
+		return this;
 	}
 
 	/**
@@ -52,20 +67,31 @@ public class StorageBuilder extends AbstractStorageBuilder implements IStorageBu
 	@Override
 	public <K, V> IStorage<K, V> build() {
 		Config config = this.convertAndValidate(Config.class);
+		if (config.profile != null) {
+			if (this.storageProvider == null) {
+				throw new RuntimeException("No StorageProvider is defined the StorageBuilder can retrieve a profileKey from.");
+			}
+			return this.storageProvider.get(config.profile);
+		}
 		IStorageBuilder builder;
-		if (config.builder.contains(".") == false) {
-			builder = this.invoke("com.wobserver.vcollections.builders." + config.builder);
-		} else {
-			builder = this.invoke(config.builder);
-		}
+		if (config.builder != null) {
+			if (config.builder.contains(".") == false) {
+				builder = this.invoke("com.wobserver.vcollections.builders." + config.builder);
+			} else {
+				builder = this.invoke(config.builder);
+			}
 
-		if (config.configuration == null) {
-			return builder.build();
+			if (config.configuration == null) {
+				return builder.build();
+			}
+			return builder
+					.withConfiguration(config.configuration)
+					.build();
 		}
-
-		return builder
-				.withConfiguration(config.configuration)
-				.build();
+		
+		// no profileKey, and no builder is set
+		throw new RuntimeException("There must be either a profileKey or a builder is set for building a storage");
+		
 	}
 
 	/**
@@ -75,8 +101,11 @@ public class StorageBuilder extends AbstractStorageBuilder implements IStorageBu
 		/**
 		 * The name of the builder class implements {@link IStorageBuilder} interface
 		 */
-		@NotNull
 		public String builder;
+		/**
+		 * The name of another builder
+		 */
+		public String profile;
 
 		/**
 		 * The embedded configuration

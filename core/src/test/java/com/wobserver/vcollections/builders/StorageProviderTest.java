@@ -62,7 +62,7 @@ class StorageProviderTest extends AbstractBuilderTest {
 				"      capacity: 10000";
 
 		StorageProvider storageProvider = new StorageProvider();
-		storageProvider.add(yamlString);
+		storageProvider.addYamlString(yamlString);
 		IStorage<String, Integer> customers = storageProvider.get("customers");
 //		Object result = this.mapper.readValue(yaml, Map.class);
 	}

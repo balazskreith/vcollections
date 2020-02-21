@@ -506,7 +506,7 @@ public interface ListTest<T extends List<String>> {
 	}
 
 	/**
-	 * <b>Given</b>: A successfully constructed {@link VArrayList}
+	 * <b>Given</b>: A successfully constructed {@link List}
 	 *
 	 * <b>When</b>: we check its emptyness
 	 *

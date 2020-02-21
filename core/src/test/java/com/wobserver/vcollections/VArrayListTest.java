@@ -4,14 +4,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.wobserver.vcollections.keygenerators.SequentialLongGenerator;
+import com.wobserver.vcollections.storages.IStorage;
+import com.wobserver.vcollections.storages.MemoryStorage;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
-import com.wobserver.vcollections.storages.IStorage;
-import com.wobserver.vcollections.storages.MemoryStorage;
 
-class VArrayListTest implements ListTest<VArrayList<String>> {
+class VArrayListTest implements ListTest<VArrayList<Long, String>> {
 
 	private List<String> makeList(long maxCapacity, String... items) {
 		HashMap<Long, String> initialItems = new HashMap<>();
@@ -21,8 +23,8 @@ class VArrayListTest implements ListTest<VArrayList<String>> {
 				initialItems.put(i, value);
 			}
 		}
-		IStorage<Long, String> storage = new MemoryStorage<>(null, initialItems, maxCapacity);
-		return new VArrayList<>(storage);
+		MemoryStorage<Long, String> storage = new MemoryStorage<>(new SequentialLongGenerator(), initialItems, maxCapacity);
+		return new VArrayList<Long, String>(storage, Function.identity());
 	}
 
 

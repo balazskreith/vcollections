@@ -1,6 +1,5 @@
 package com.wobserver.vcollections.keygenerators;
 
-import com.wobserver.vcollections.builders.AbstractBuilder;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
@@ -53,15 +52,26 @@ public class KeyGeneratorFactory {
 			return result;
 		}
 		Constructor<T> constructor;
+		boolean useMinMaxConstructor = minSize != maxSize;
 		try {
-			 constructor = klass.getConstructor(Integer.class, Integer.class);
+			if (useMinMaxConstructor) {
+				constructor = klass.getConstructor(Integer.class, Integer.class);	
+			} else {
+				constructor = klass.getConstructor();
+			}
+			 
 		} catch (NoSuchMethodException e) {
 			logger.warn("No constructor exists which accept (int, int) for type " + klass.getName(), e);
 			return null;
 		}
 		Object constructed;
 		try {
-			constructed = constructor.newInstance(minSize, maxSize);
+			if (useMinMaxConstructor) {
+				constructed = constructor.newInstance(minSize, maxSize);	
+			} else {
+				constructed = constructor.newInstance();
+			}
+			
 		} catch (InstantiationException e) {
 			logger.warn("Error by invoking constructor for type " + klass.getName(), e);
 			return null;
@@ -98,15 +108,15 @@ public class KeyGeneratorFactory {
 		}
 
 		if (typeName.equals(String.class.getName())) {
-			return (IKeyGenerator<T>) new StringGenerator(minSize, maxSize);
+			return (IKeyGenerator<T>) new RandomStringGenerator(minSize, maxSize);
 		}
 
 		if (typeName.equals(Integer.class.getName())) {
-			return (IKeyGenerator<T>) new IntegerGenerator(minSize, maxSize);
+			return (IKeyGenerator<T>) new RandomIntegerGenerator(minSize, maxSize);
 		}
 
 		if (typeName.equals(Long.class.getName())) {
-			return (IKeyGenerator<T>) new LongGenerator(minSize, maxSize);
+			return (IKeyGenerator<T>) new RandomLongGenerator(minSize, maxSize);
 		}
 		return null;
 	}

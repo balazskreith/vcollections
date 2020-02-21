@@ -38,6 +38,7 @@ allprojects {
     }
 }
 subprojects {
+    apply plugin: "maven-publish"
     hello {
         doLast {
             println "vcollectinos-${project.name}"
@@ -45,17 +46,17 @@ subprojects {
     }
     ext.publish = true
     bintray {
-        user = System.getenv("BINTRAY_USER")
-        key = System.getenv("BINTRAY_API_KEY")
+        user = 'balazskreith'
+        key = '75ad9d231b2e61cdc114f4900a147abd0bb1093d'
         publications = ['vcollections']
         pkg {
-            repo = 'vcollections'
+            repo = "vcollectinos"
             name = "vcollectinos-${project.name}"
             userOrg = 'wobserver'
             licenses = ['AGPL-V3']
-            websiteUrl = 'https://github.com/balazskreith/vcollections/'
-            issueTrackerUrl = 'https://github.com/balazskreith/vcollections/issues'
-            vcsUrl = 'https://github.com/balazskreith/vcollections.git'
+            websiteUrl = 'https://github.com/woberver/vcollections/'
+            issueTrackerUrl = 'https://github.com/woberver/vcollections/issues'
+            vcsUrl = 'https://github.com/woberver/vcollections.git'
             labels = ['collections', 'virtualization']
             publicDownloadNumbers = true
             version {
@@ -67,8 +68,28 @@ subprojects {
     }
 
     publishing {
+//        publications {
+//            vcollections(MavenPublication) {
+//                from components.java
+//                groupId project.group
+//                artifactId "vcollectinos-${project.name}"
+//                version project.version
+//            }
+//        }
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/wobserver/vcollections")
+                credentials {
+                    username = 'balazskreith'
+                    password = '061de7ee83081d918bde30b52316394c8aaf3ab4'
+//                    username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+//                    password = project.findProperty("gpr.key") ?: System.getenv("PASSWORD")
+                }
+            }
+        }
         publications {
-            vcollections(MavenPublication) {
+            gpr(MavenPublication) {
                 from components.java
                 groupId project.group
                 artifactId "vcollectinos-${project.name}"

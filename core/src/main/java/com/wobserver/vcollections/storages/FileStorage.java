@@ -35,17 +35,6 @@ public class FileStorage<K, V> implements IStorage<K, V> {
 		for (Path path : directoryStream) {
 			++this.entries;
 		}
-
-
-	}
-
-
-	public FileStorage(IMapper<K, String> keyMapper, Class<V> valueType, ObjectMapper valueMapper, String directory) throws IOException {
-		this(keyMapper, valueType, valueMapper, directory, null, NO_MAX_SIZE);
-	}
-
-	public FileStorage(IMapper<K, String> keyMapper, Class<V> valueType, ObjectMapper valueMapper, String directory, Long capacity) throws IOException {
-		this(keyMapper, valueType, valueMapper, directory, null, capacity);
 	}
 
 	@Override

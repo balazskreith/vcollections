@@ -1,37 +1,22 @@
 package com.wobserver.vcollections;
 
-import com.wobserver.vcollections.keygenerators.IAccessKeyGenerator;
-import com.wobserver.vcollections.keygenerators.IKeyGenerator;
 import com.wobserver.vcollections.storages.IStorage;
-import com.wobserver.vcollections.storages.sort.ISorter;
-import com.wobserver.vcollections.storages.sort.arrays.Quicksorter;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public class VArrayList<T> implements List<T> {
+public class VArrayList<K, V> implements List<V> {
 
-	private final IStorage<Long, T> storage;
-
-	public VArrayList(IStorage<Long, T> storage) {
+	private final IStorage<K, V> storage;
+	private final Function<Long, K> keyMapper;
+	
+	public VArrayList(IStorage<K, V> storage, Function<Long, K> keyMapper) {
 		this.storage = storage;
-		if (!(this.storage instanceof IAccessKeyGenerator)) {
-			throw new RuntimeException("Storage must implement ISetKeyGenerator for " + this.getClass().getName());
-		}
-
-		((IAccessKeyGenerator<Long>) this.storage).setKeyGenerator(new IKeyGenerator<Long>() {
-
-			private AtomicReference<Long> nextKeyHolder = new AtomicReference<>(storage.entries());
-
-			@Override
-			public Long get() {
-				return nextKeyHolder.getAndUpdate(v -> v + 1);
-			}
-		});
+		this.keyMapper = keyMapper;
 	}
 
 	@Override
@@ -49,8 +34,8 @@ public class VArrayList<T> implements List<T> {
 
 	@Override
 	public boolean contains(Object o) {
-		for (Iterator<T> it = this.iterator(); it.hasNext(); ) {
-			T value = it.next();
+		for (Iterator<V> it = this.iterator(); it.hasNext(); ) {
+			V value = it.next();
 			if (o == null) {
 				if (value == null) {
 					return true;
@@ -65,26 +50,26 @@ public class VArrayList<T> implements List<T> {
 	}
 
 	@Override
-	public Iterator<T> iterator() {
+	public Iterator<V> iterator() {
 		return new IteratorImpl(0);
 	}
 
 	@Override
-	public void forEach(Consumer<? super T> action) {
+	public void forEach(Consumer<? super V> action) {
 		if (action == null) {
 			throw new NullPointerException();
 		}
 		Long index = 0L;
-		for (Iterator<T> it = this.iterator(); it.hasNext(); ++index) {
-			T before = it.next();
+		for (Iterator<V> it = this.iterator(); it.hasNext(); ++index) {
+			V before = it.next();
 			action.accept(before);
-			T after = it.next();
+			V after = it.next();
 			if (before == null) {
 				if (after != null) {
-					this.storage.update(index, after);
+					this.storage.update(this.getKeyFor(index), after);
 				}
 			} else if (!before.equals(after)) {
-				this.storage.update(index, after);
+				this.storage.update(this.getKeyFor(index), after);
 			}
 		}
 	}
@@ -93,8 +78,8 @@ public class VArrayList<T> implements List<T> {
 	public Object[] toArray() {
 		Object[] result = new Object[this.size()];
 		int i = 0;
-		for (Iterator<T> it = this.iterator(); it.hasNext(); ) {
-			T value = it.next();
+		for (Iterator<V> it = this.iterator(); it.hasNext(); ) {
+			V value = it.next();
 			result[i++] = value;
 		}
 		return result;
@@ -103,8 +88,8 @@ public class VArrayList<T> implements List<T> {
 	@Override
 	public <T1> T1[] toArray(T1[] a) {
 		int i = 0;
-		for (Iterator<T> it = this.iterator(); it.hasNext(); ) {
-			T value = it.next();
+		for (Iterator<V> it = this.iterator(); it.hasNext(); ) {
+			V value = it.next();
 			// TODO: fix it
 //			a[i++] = value;
 		}
@@ -113,8 +98,8 @@ public class VArrayList<T> implements List<T> {
 
 
 	@Override
-	public boolean add(T t) {
-		this.storage.create(t);
+	public boolean add(V v) {
+		this.storage.create(v);
 		return true;
 	}
 
@@ -122,14 +107,14 @@ public class VArrayList<T> implements List<T> {
 	public boolean remove(Object o) {
 		Long found = -1L;
 		Long index = 0L;
-		Predicate<T> find;
+		Predicate<V> find;
 		if (o == null) {
 			find = v -> v == null;
 		} else {
 			find = v -> o.equals(v);
 		}
-		for (Iterator<T> it = this.iterator(); it.hasNext(); ++index) {
-			T value = it.next();
+		for (Iterator<V> it = this.iterator(); it.hasNext(); ++index) {
+			V value = it.next();
 			if (find.test(value)) {
 				found = index;
 				break;
@@ -140,9 +125,9 @@ public class VArrayList<T> implements List<T> {
 		}
 		long end = this.storage.entries() - 1;
 		for (long i = found; i < end; ++i) {
-			this.storage.swap(i, i + 1L);
+			this.storage.swap(this.getKeyFor(i), this.getKeyFor(i + 1L));
 		}
-		this.storage.delete(end);
+		this.storage.delete(this.getKeyFor(end));
 		return true;
 	}
 
@@ -152,24 +137,25 @@ public class VArrayList<T> implements List<T> {
 	}
 
 	@Override
-	public boolean addAll(Collection<? extends T> c) {
+	public boolean addAll(Collection<? extends V> c) {
 		c.stream().forEach(this.storage::create);
 		return true;
 	}
 
 	@Override
-	public boolean addAll(int index, Collection<? extends T> c) {
+	public boolean addAll(int index, Collection<? extends V> c) {
 		long shiftSize = c.size();
 		long i;
 		for (i = this.storage.entries() - 1; index <= i; --i) {
-			T value = this.storage.read(i);
-			this.storage.update(i + shiftSize, value);
+			K key = this.getKeyFor(i);
+			V value = this.storage.read(key);
+			this.storage.update(this.getKeyFor(i + shiftSize), value);
 		}
 		// The storage is in an ionconsistent state now, with duplicated values
 		i = index;
-		for (Iterator<? extends T> it = c.iterator(); it.hasNext(); ++i) {
-			T item = it.next();
-			this.storage.update(i, item);
+		for (Iterator<? extends V> it = c.iterator(); it.hasNext(); ++i) {
+			V item = it.next();
+			this.storage.update(this.getKeyFor(i), item);
 		}
 		return true;
 	}
@@ -180,7 +166,7 @@ public class VArrayList<T> implements List<T> {
 	}
 
 	@Override
-	public boolean removeIf(Predicate<? super T> filter) {
+	public boolean removeIf(Predicate<? super V> filter) {
 		if (filter == null) {
 			throw new NullPointerException();
 		}
@@ -188,9 +174,9 @@ public class VArrayList<T> implements List<T> {
 		boolean removed = false;
 		final long end = this.storage.entries();
 		for (long index = 0L; index < end; ++index) {
-			T value = this.storage.read(index);
+			V value = this.storage.read(this.getKeyFor(index));
 			if (filter.test(value)) {
-				this.storage.delete(index);
+				this.storage.delete(this.getKeyFor(index));
 				removed = true;
 			}
 		}
@@ -204,9 +190,9 @@ public class VArrayList<T> implements List<T> {
 	public boolean retainAll(Collection<?> c) {
 		final long end = this.storage.entries();
 		for (long index = 0; index < end; ++index) {
-			T value = this.storage.read(index);
+			V value = this.storage.read(this.getKeyFor(index));
 			if (!c.contains(value)) {
-				this.storage.delete(index);
+				this.storage.delete(this.getKeyFor(index));
 
 			}
 		}
@@ -220,44 +206,15 @@ public class VArrayList<T> implements List<T> {
 		final long end = this.storage.entries();
 		long next;
 		// Put the start position to an index, which exists.
-		for (; start < end && this.storage.has(start); ++start) ;
+		for (; start < end && this.storage.has(this.getKeyFor(start)); ++start) ;
 		while (start < end) {
-			T value = null;
-			for (next = start + 1L; next < originalEnd && !this.storage.has(next); ++next) ;
-			value = this.storage.read(next);
-			this.storage.update(start, value);
-			this.storage.delete(next);
-			++start;
-			result = true;
-		}
-		return result;
-	}
-
-	/**
-	 * Make the storage continous.
-	 * This version is costly, because it needs to search the next position
-	 * using a storage iterator reset after every individual defragmentation.
-	 * If we can use, use the defragment(long, long), where the original
-	 * size before the collection fragmented is passed as a parameter
-	 *
-	 * @return true if anything has been changed
-	 */
-	private boolean defragment(long start) {
-		boolean result = false;
-		final long end = this.storage.entries();
-		// Put the start position to an index, which exists.
-		for (; start < end && this.storage.has(start); ++start) ;
-		while (start < end) {
-			Iterator<Map.Entry<Long, T>> it = this.storage.iterator();
-			long next = 0L;
-			T value = null;
-			for (; next <= start && it.hasNext(); ) {
-				Map.Entry<Long, T> entry = it.next();
-				value = entry.getValue();
-				next = entry.getKey();
-			}
-			this.storage.update(start, value);
-			this.storage.delete(next);
+			K startKey = this.getKeyFor(start);
+			V value = null;
+			for (next = start + 1L; next < originalEnd && !this.storage.has(this.getKeyFor(next)); ++next) ;
+			K nextKey = this.getKeyFor(next);
+			value = this.storage.read(nextKey);
+			this.storage.update(startKey, value);
+			this.storage.delete(nextKey);
 			++start;
 			result = true;
 		}
@@ -265,9 +222,9 @@ public class VArrayList<T> implements List<T> {
 	}
 
 	@Override
-	public void sort(Comparator<? super T> c) {
-		ISorter sorter = new Quicksorter<T>(this.storage, c);
-		sorter.run();
+	public void sort(Comparator<? super V> c) {
+//		ISorter sorter = new Quicksorter<T>(this.storage, c);
+//		sorter.run();
 	}
 
 	@Override
@@ -276,31 +233,31 @@ public class VArrayList<T> implements List<T> {
 	}
 
 	@Override
-	public T get(int index) {
+	public V get(int index) {
 		if (this.size() <= index) {
 			throw new ArrayIndexOutOfBoundsException();
 		}
-		Long key = Long.valueOf(index);
+		K key = this.getKeyFor(index);
 		return this.storage.read(key);
 	}
 
 	@Override
-	public T set(int index, T element) {
+	public V set(int index, V element) {
 		if (this.size() <= index) {
 			throw new ArrayIndexOutOfBoundsException();
 		}
-		Long key = Long.valueOf(index);
-		T removed = this.storage.read(key);
+		K key = this.getKeyFor(index);
+		V removed = this.storage.read(key);
 		this.storage.update(key, element);
 		return removed;
 	}
 
 	@Override
-	public void add(int index, T element) {
+	public void add(int index, V element) {
 		if (this.size() <= index) {
 			throw new IndexOutOfBoundsException();
 		}
-		Long indexPosition = Long.valueOf(index);
+		K indexPosition = this.getKeyFor(index);
 		if (this.storage.read(indexPosition) == null) {
 			this.storage.update(indexPosition, element);
 			return;
@@ -308,37 +265,38 @@ public class VArrayList<T> implements List<T> {
 
 		Long position = Long.valueOf(this.size() - 1);
 		for (; index <= position; --position) {
-			T value = this.storage.read(position);
-			this.storage.update(position + 1, value);
+			K positionKey = this.getKeyFor(position);
+			V value = this.storage.read(positionKey);
+			this.storage.update(this.getKeyFor(position + 1), value);
 		}
-		this.storage.update(position, element);
+		this.storage.update(this.getKeyFor(position), element);
 	}
 
 	@Override
-	public T remove(int index) {
+	public V remove(int index) {
 		if (this.size() <= index) {
 			throw new IndexOutOfBoundsException();
 		}
 		long end = this.storage.entries() - 1;
 		for (long i = index; i < end; ++i) {
-			this.storage.swap(i, i + 1L);
+			this.storage.swap(this.getKeyFor(i), this.getKeyFor(i + 1L));
 		}
-		T result = this.storage.read(end + 1L);
-		this.storage.delete(end);
+		V result = this.storage.read(this.getKeyFor(end + 1L));
+		this.storage.delete(this.getKeyFor(end));
 		return result;
 	}
 
 	@Override
 	public int indexOf(Object o) {
 		Long index = 0L;
-		Predicate<T> isEqual;
+		Predicate<V> isEqual;
 		if (o == null) {
 			isEqual = v -> v == null;
 		} else {
 			isEqual = v -> o.equals(v);
 		}
-		for (Iterator<T> it = this.iterator(); it.hasNext(); ++index) {
-			T value = it.next();
+		for (Iterator<V> it = this.iterator(); it.hasNext(); ++index) {
+			V value = it.next();
 			if (isEqual.test(value)) {
 				return index.intValue();
 			}
@@ -349,8 +307,8 @@ public class VArrayList<T> implements List<T> {
 	@Override
 	public int lastIndexOf(Object o) {
 		Long index = this.storage.entries() - 1;
-		for (ListIterator<T> it = this.listIterator(this.size() - 1); it.hasPrevious(); --index) {
-			T value = it.previous();
+		for (ListIterator<V> it = this.listIterator(this.size() - 1); it.hasPrevious(); --index) {
+			V value = it.previous();
 			if (o == null) {
 				if (value == null) {
 					return index.intValue();
@@ -365,17 +323,17 @@ public class VArrayList<T> implements List<T> {
 	}
 
 	@Override
-	public ListIterator<T> listIterator() {
+	public ListIterator<V> listIterator() {
 		return new ListIteratorImpl(0);
 	}
 
 	@Override
-	public ListIterator<T> listIterator(int index) {
+	public ListIterator<V> listIterator(int index) {
 		return new ListIteratorImpl(index);
 	}
 
 	@Override
-	public List<T> subList(int fromIndex, int toIndex) {
+	public List<V> subList(int fromIndex, int toIndex) {
 		if (toIndex <= fromIndex) {
 			throw new ArrayIndexOutOfBoundsException();
 		}
@@ -384,31 +342,40 @@ public class VArrayList<T> implements List<T> {
 	}
 
 	@Override
-	public Spliterator<T> spliterator() {
+	public Spliterator<V> spliterator() {
 //		throw new NotImplementedException();
 		return null;
 	}
 
 	@Override
-	public Stream<T> stream() {
-		Iterator<T> sourceIterator = this.iterator();
+	public Stream<V> stream() {
+		Iterator<V> sourceIterator = this.iterator();
 		return StreamSupport.stream(
 				Spliterators.spliteratorUnknownSize(sourceIterator, Spliterator.ORDERED), false
 		);
 	}
 
 	@Override
-	public Stream<T> parallelStream() {
+	public Stream<V> parallelStream() {
 //		throw new NotImplementedException();
 		return null;
 	}
 
 
-	private class IteratorImpl implements Iterator<T> {
+	private class IteratorImpl implements Iterator<V> {
 		protected Long index;
 		protected boolean modified;
-
+		private Iterator<Map.Entry<K, V>> iterator;
+		
+		IteratorImpl(Iterator<Map.Entry<K, V>> iterator, int start) {
+			this.iterator = iterator;
+			for (int i = 0; i < start; ++i) {
+				this.iterator.next();
+			}
+		}
+		
 		IteratorImpl(int start) {
+			
 			this.index = Long.valueOf(start);
 		}
 
@@ -417,17 +384,21 @@ public class VArrayList<T> implements List<T> {
 		}
 
 		public final boolean hasNext() {
-			return 0 <= this.index && this.index < VArrayList.this.storage.entries();
+			return this.iterator.hasNext();
+//			return 0 <= this.index && this.index < VArrayList.this.storage.entries();
 		}
 
-		public final T next() {
-			if (VArrayList.this.storage.entries() <= this.index) {
-				throw new IndexOutOfBoundsException();
-			}
-			T result = VArrayList.this.storage.read(this.index);
-			this.modified = false;
-			++this.index;
-			return result;
+		public final V next() {
+			Map.Entry<K, V> entry = this.iterator.next();
+			return entry.getValue(); 
+//			if (VArrayList.this.storage.entries() <= this.index) {
+//				throw new IndexOutOfBoundsException();
+//			}
+//			K key = VArrayList.this.getKeyFor(this.index);
+//			V result = VArrayList.this.storage.read(key);
+//			this.modified = false;
+//			++this.index;
+//			return result;
 		}
 
 		public final void remove() {
@@ -437,12 +408,13 @@ public class VArrayList<T> implements List<T> {
 			if (this.modified || this.index < 1) {
 				throw new IllegalStateException();
 			}
-			VArrayList.this.storage.delete(this.index);
+			K key = VArrayList.this.getKeyFor(this.index);
+			VArrayList.this.storage.delete(key);
 			this.modified = true;
 		}
 	}
 
-	private class ListIteratorImpl extends IteratorImpl implements ListIterator<T> {
+	private class ListIteratorImpl extends IteratorImpl implements ListIterator<V> {
 
 		ListIteratorImpl(int start) {
 			super(start);
@@ -454,11 +426,12 @@ public class VArrayList<T> implements List<T> {
 		}
 
 		@Override
-		public T previous() {
+		public V previous() {
 			if (this.index < 0) {
 				throw new IndexOutOfBoundsException();
 			}
-			T result = VArrayList.this.storage.read(this.index);
+			K key = VArrayList.this.getKeyFor(this.index);
+			V result = VArrayList.this.storage.read(key);
 			this.modified = false;
 			--this.index;
 			return result;
@@ -477,27 +450,40 @@ public class VArrayList<T> implements List<T> {
 		}
 
 		@Override
-		public void set(T t) {
+		public void set(V v) {
 			if (this.modified) {
 				throw new IllegalStateException();
 			}
-			VArrayList.this.storage.update(this.index, t);
+			K key = VArrayList.this.getKeyFor(this.index);
+			VArrayList.this.storage.update(key, v);
 		}
 
 		@Override
-		public void add(T t) {
+		public void add(V v) {
 			if (this.modified) {
 				throw new IllegalStateException();
 			}
 
 			Long position = VArrayList.this.storage.entries() - 1;
 			for (; index <= position; --position) {
-				T value = VArrayList.this.storage.read(position);
-				VArrayList.this.storage.update(position + 1, value);
+				K positionKey = VArrayList.this.getKeyFor(position);
+				V value = VArrayList.this.storage.read(positionKey);
+				K nextPosition = VArrayList.this.getKeyFor(position + 1);
+				VArrayList.this.storage.update(nextPosition, value);
 			}
-			VArrayList.this.storage.update(index, t);
+			K key = VArrayList.this.getKeyFor(this.index);
+			VArrayList.this.storage.update(key, v);
 			this.modified = true;
 		}
+	}
+
+
+	private K getKeyFor(int index) {
+		return this.keyMapper.apply((long) index);
+	}
+
+	private K getKeyFor(long index) {
+		return this.keyMapper.apply( index);
 	}
 
 }
