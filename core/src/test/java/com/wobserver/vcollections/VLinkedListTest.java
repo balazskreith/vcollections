@@ -1,75 +1,131 @@
 package com.wobserver.vcollections;
 
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import com.wobserver.vcollections.builders.FieldAccessBuilder;
+import com.wobserver.vcollections.storages.FieldAccessor;
 import com.wobserver.vcollections.storages.IStorage;
 import com.wobserver.vcollections.storages.MemoryStorage;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-class VLinkedListTest implements ListTest<VLinkedList<String>>, DequeTest<VLinkedList<String>> {
+class VLinkedListTest implements ListTest<VLinkedListTest.Node, VLinkedList<UUID, VLinkedListTest.Node>>, DequeTest<VLinkedListTest.Node, VLinkedList<UUID, VLinkedListTest.Node>> {
 
-	private IVLinkedListNode<String> makeNode(UUID uuid, UUID prev, UUID next, String value) {
-		return new IVLinkedListNode<String>() {
-
-			@Override
-			public UUID getNextUUID() {
-				return next;
+	public static class Node {
+		public UUID prev;
+		public UUID next;
+		public UUID key;
+		public String value;
+		
+		@Override
+		public String toString() {
+			return this.value;
+		}
+		
+		@Override
+		public boolean equals(Object peer) {
+			if (peer == null) {
+				return false;
 			}
-
-			@Override
-			public UUID getPrevUUID() {
-				return prev;
+			if (this.value == null) {
+				return ((Node) peer).value == null;
 			}
-
-			@Override
-			public String getValue() {
-				return value;
-			}
-		};
+			return this.value.equals(((Node) peer).value);
+		}
 	}
 
-	private VLinkedList<String> makeLinkedList(long maxCapacity, String... items) {
-		HashMap<UUID, IVLinkedListNode<String>> initialItems = new HashMap<>();
-		List<UUID> uuids = Stream.iterate(UUID.randomUUID(), i -> UUID.randomUUID()).limit(items.length).collect(Collectors.toList());
-		UUID first = null;
-		if (items != null) {
-			for (int i = 0; i < items.length; ++i) {
-				String value = items[i];
-				IVLinkedListNode<String> node;
-				if (i == 0 && i == items.length - 1) {
-					node = makeNode(uuids.get(i), null, null, value);
-					first = uuids.get(0);
-				} else if (i == 0) {
-					node = makeNode(uuids.get(i), null, uuids.get(i + 1), value);
-					first = uuids.get(0);
-				} else if (i == items.length - 1) {
-					node = makeNode(uuids.get(i), uuids.get(i - 1), null, value);
-				} else {
-					node = makeNode(uuids.get(i), uuids.get(i - 1), uuids.get(i + 1), value);
-				}
+	@Override
+	public Node toItem(String item) {
+		Node result = new Node();
+		result.key = UUID.randomUUID();
+		result.value = item;
+		return result;
+	}
 
-				initialItems.put(uuids.get(i), node);
+	@Override
+	public List<Node> asArrayList(String... items) {
+		Node actual;
+		Node prev = null;
+		List<Node> result = new ArrayList<>();
+		for (String item : items) {
+			actual = new Node();
+			actual.value = item;
+			actual.key = UUID.randomUUID();
+			if (prev == null) {
+				prev = actual;
+			} else {
+				prev.next = actual.key;
+				actual.prev = prev.key;
+				prev = actual;
 			}
-		}
-		IStorage<UUID, IVLinkedListNode<String>> storage = new MemoryStorage<>(null, initialItems, maxCapacity);
-		VLinkedList<String> result;
-		if (first == null) {
-			result = new VLinkedList<>(storage);
-		} else {
-			result = new VLinkedList<String>(storage, first);
+			result.add(actual);
 		}
 		return result;
 	}
 
 	@Override
-	public Deque<String> makeDeque(String... items) {
+	public String getValue(Node value) {
+		return value.value;
+	}
+
+	@Override
+	public void setValue(Node item, String value) {
+		item.value = value;
+	}
+
+	private Node makeNode(UUID uuid, UUID prev, UUID next, String value) {
+		Node result = new Node();
+		result.value = value;
+		result.key = uuid;
+		result.next = next;
+		result.prev = prev;
+		return result;
+	}
+	
+	private VLinkedList<UUID, Node> makeLinkedList(long maxCapacity, String... items) {
+		HashMap<UUID, Node> initialItems = new HashMap<>();
+		List<UUID> uuids = Stream.iterate(UUID.randomUUID(), i -> UUID.randomUUID()).limit(items.length).collect(Collectors.toList());
+		UUID first = null;
+		Node last = null;
+		if (items != null) {
+			for (int i = 0; i < items.length; ++i) {
+				String value = items[i];
+				Node node;
+				if (i == 0 && i == items.length - 1) {
+					last = node = makeNode(uuids.get(i), null, null, value);
+					first = uuids.get(0);
+				} else if (i == 0) {
+					last = node = makeNode(uuids.get(i), null, uuids.get(i + 1), value);
+					first = uuids.get(0);
+				} else if (i == items.length - 1) {
+					last = node = makeNode(uuids.get(i), uuids.get(i - 1), null, value);
+				} else {
+					last = node = makeNode(uuids.get(i), uuids.get(i - 1), uuids.get(i + 1), value);
+				}
+				
+				initialItems.put(uuids.get(i), node);
+			}
+		}
+		IStorage<UUID, Node> storage = new MemoryStorage<>(null, initialItems, maxCapacity);
+		VLinkedList<UUID, Node> result;
+		FieldAccessor<Node, UUID> prevAccessor = new FieldAccessBuilder<>().withField("prev").withClass(Node.class.getName()).getFieldAccessor();
+		FieldAccessor<Node, UUID> keyAccessor = new FieldAccessBuilder<>().withField("key").withClass(Node.class.getName()).getFieldAccessor();
+		FieldAccessor<Node, UUID> nextAccessor = new FieldAccessBuilder<>().withField("next").withClass(Node.class.getName()).getFieldAccessor();
+		if (first == null) {
+			result = new VLinkedList<>(storage,null, null, nextAccessor, prevAccessor, keyAccessor);
+		} else {
+			result = new VLinkedList<>(storage, first, last.key, nextAccessor, prevAccessor, keyAccessor);
+		}
+		return result;
+	}
+
+	@Override
+	public Deque<Node> makeDeque(String... items) {
 		return this.makeLinkedList(IStorage.NO_MAX_SIZE, items);
 	}
 
-	public List<String> makeList(String... items) {
+	public List<Node> makeList(String... items) {
 		return this.makeLinkedList(IStorage.NO_MAX_SIZE, items);
 	}
+
+	
 }

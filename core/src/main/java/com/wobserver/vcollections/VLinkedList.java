@@ -1,34 +1,33 @@
 package com.wobserver.vcollections;
 
+import com.wobserver.vcollections.storages.FieldAccessor;
+import com.wobserver.vcollections.storages.IStorage;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
+import java.util.function.*;
 import java.util.stream.Stream;
-import com.wobserver.vcollections.storages.IStorage;
 
-public class VLinkedList<T> implements List<T>, Deque<T> {
+public class VLinkedList<K, V> implements List<V>, Deque<V> {
 
 	private Node head;
 	private Node tail;
-	private IStorage<UUID, IVLinkedListNode<T>> storage;
+	private final FieldAccessor<V, K> nextAccessor;
+	private final FieldAccessor<V, K> prevAccessor;
+	private final FieldAccessor<V, K> keyAccessor;
+	private IStorage<K, V> storage;
 
-	public VLinkedList(IStorage<UUID, IVLinkedListNode<T>> storage) {
+	public VLinkedList(IStorage<K, V> storage, K headKey, K tailKey, FieldAccessor<V, K> nextAccessor, FieldAccessor<V, K> prevAccessor, FieldAccessor<V, K> keyAccessor) {
 		this.storage = storage;
-	}
+		this.nextAccessor = nextAccessor;
+		this.prevAccessor = prevAccessor;
+		this.keyAccessor = keyAccessor;
+		if (headKey != null) {
+			this.head = this.load(headKey);
+		}
+		if (tailKey != null) {
+			this.tail = this.load(tailKey);
+		}
 
-	public VLinkedList(IStorage<UUID, IVLinkedListNode<T>> storage, UUID headUUID, UUID tailUUID) {
-		this.storage = storage;
-		this.head = this.load(headUUID);
-		this.tail = this.load(tailUUID);
-	}
-
-	public VLinkedList(IStorage<UUID, IVLinkedListNode<T>> storage, UUID headUUID) {
-		this.storage = storage;
-		this.head = this.load(headUUID);
-		for (this.tail = this.head; this.tail.getNextUUID() != null; this.tail = this.tail.getNextNode()) ;
 	}
 
 	@Override
@@ -48,11 +47,11 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	}
 
 	@Override
-	public Iterator<T> iterator() {
-		return new NodeForwardIterator<T>() {
+	public Iterator<V> iterator() {
+		return new NodeForwardIterator<V>() {
 			@Override
-			public T next() {
-				IVLinkedListNode<T> node = this.nextNode();
+			public V next() {
+				Node node = this.nextNode();
 				if (node == null) {
 					return null;
 				}
@@ -62,11 +61,11 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	}
 
 	@Override
-	public Iterator<T> descendingIterator() {
-		return new NodeBackwardIterator<T>() {
+	public Iterator<V> descendingIterator() {
+		return new NodeBackwardIterator<V>() {
 			@Override
-			public T next() {
-				IVLinkedListNode<T> node = this.nextNode();
+			public V next() {
+				Node node = this.nextNode();
 				if (node == null) {
 					return null;
 				}
@@ -76,22 +75,22 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	}
 
 	@Override
-	public void forEach(Consumer<? super T> action) {
+	public void forEach(Consumer<? super V> action) {
 		if (action == null) {
 			throw new NullPointerException();
 		}
 		Node node;
 		for (node = this.head; node != null; node = node.getNextNode()) {
-			T before = node.getValue();
+			V before = node.getValue();
+			V after = before;
 			action.accept(before);
-			T after = node.getValue();
 			if (before == null) {
 				if (after != null) {
-					node.value = after;
+					node.setValue(after);
 					node.save();
 				}
 			} else if (!before.equals(after)) {
-				node.value = after;
+				node.setValue(after);
 				node.save();
 			}
 		}
@@ -101,8 +100,8 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	public Object[] toArray() {
 		Object[] result = new Object[this.size()];
 		int i = 0;
-		for (Iterator<T> it = this.iterator(); it.hasNext(); ) {
-			T value = it.next();
+		for (Iterator<V> it = this.iterator(); it.hasNext(); ) {
+			V value = it.next();
 			result[i++] = value;
 		}
 		return result;
@@ -120,79 +119,89 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 //	}
 
 	@Override
-	public void addFirst(T t) {
+	public void addFirst(V v) {
 		Node node;
 		if (this.head == null) {
-			this.head = this.tail = node = new Node(null, null, t);
-			node.save();
+			this.head = this.tail = node = new Node(v);
+			this.head.setPrevKey(null);
+			this.head.setNextKey(null);
+			this.head.save();
 			return;
 		}
-		node = new Node(null, this.head.getUUID(), t);
-		this.head.prevUUID = node.getUUID();
+
+		node = new Node(v);
+		node.setNextKey(this.head.getKey());
+		node.setPrevKey(null);
+		node.save();
+		this.head.setPrevKey(node.getKey());
 		this.head.save();
 		this.head = node;
 	}
 
 	@Override
-	public void addLast(T t) {
+	public void addLast(V v) {
 		Node node;
 		if (this.tail == null) {
-			this.head = this.tail = node = new Node(null, null, t);
+			this.head = this.tail = node = new Node(v);
+			this.head.setPrevKey(null);
+			this.head.setNextKey(null);
 			node.save();
 			return;
 		}
 
-		node = new Node(this.tail.getUUID(), null, t);
+		node = new Node(v);
+		node.setPrevKey(this.tail.getKey());
+		node.setNextKey(null);
 		node.save();
-		this.tail.nextUUID = node.getUUID();
+		this.tail.setNextKey(node.getKey());
 		this.tail.save();
 		this.tail = node;
 	}
 
 	@Override
-	public boolean offerFirst(T t) {
-		this.addFirst(t);
+	public boolean offerFirst(V v) {
+		this.addFirst(v);
 		return true;
 	}
 
 	@Override
-	public boolean offerLast(T t) {
-		this.addLast(t);
+	public boolean offerLast(V v) {
+		this.addLast(v);
 		return true;
 	}
 
 	@Override
-	public T removeFirst() {
+	public V removeFirst() {
 		if (this.head == null) {
 			return null;
 		}
-		T result = this.head.getValue();
+		V result = this.head.getValue();
 		this.unlinkAndSave(this.head);
 		return result;
 	}
 
 	@Override
-	public T removeLast() {
+	public V removeLast() {
 		if (this.tail == null) {
 			return null;
 		}
-		T result = this.tail.getValue();
+		V result = this.tail.getValue();
 		this.unlinkAndSave(this.tail);
 		return result;
 	}
 
 	@Override
-	public T pollFirst() {
+	public V pollFirst() {
 		return this.removeFirst();
 	}
 
 	@Override
-	public T pollLast() {
+	public V pollLast() {
 		return this.removeLast();
 	}
 
 	@Override
-	public T getFirst() {
+	public V getFirst() {
 		if (this.head == null) {
 			return null;
 		}
@@ -200,7 +209,7 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	}
 
 	@Override
-	public T getLast() {
+	public V getLast() {
 		if (this.tail == null) {
 			return null;
 		}
@@ -208,12 +217,12 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	}
 
 	@Override
-	public T peekFirst() {
+	public V peekFirst() {
 		return this.getFirst();
 	}
 
 	@Override
-	public T peekLast() {
+	public V peekLast() {
 		return this.getLast();
 	}
 
@@ -244,34 +253,34 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	}
 
 	@Override
-	public boolean add(T t) {
-		this.addLast(t);
+	public boolean add(V v) {
+		this.addLast(v);
 		return true;
 	}
 
 	@Override
-	public boolean offer(T t) {
-		this.addLast(t);
+	public boolean offer(V v) {
+		this.addLast(v);
 		return true;
 	}
 
 	@Override
-	public T remove() {
+	public V remove() {
 		return this.removeFirst();
 	}
 
 	@Override
-	public T poll() {
+	public V poll() {
 		return this.removeFirst();
 	}
 
 	@Override
-	public T element() {
+	public V element() {
 		return this.getFirst();
 	}
 
 	@Override
-	public T peek() {
+	public V peek() {
 		return this.getFirst();
 	}
 
@@ -291,58 +300,64 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	}
 
 	@Override
-	public boolean addAll(Collection<? extends T> c) {
+	public boolean addAll(Collection<? extends V> c) {
 		c.forEach(item -> this.add(item));
 		return true;
 	}
 
 	@Override
-	public void push(T t) {
-		this.add(t);
+	public void push(V v) {
+		this.add(v);
 	}
 
 	@Override
-	public T pop() {
+	public V pop() {
 		return this.removeFirst();
 	}
 
 	@Override
-	public boolean addAll(int index, Collection<? extends T> c) {
+	public boolean addAll(int index, Collection<? extends V> c) {
 		if (c == null || c.size() < 1) {
 			return false;
 		}
 		if (index < 0 || this.size() <= index) {
 			throw new IndexOutOfBoundsException();
 		}
-		Node after = this.getNode(index);
-		Node first = null;
-		Node last = null;
-		for (T value : c) {
+		V first = null;
+		V last = null;
+		K firstKey = null;
+		K lastKey = null;
+		for (V value : c) {
+			K key = this.keyAccessor.get(value);
+			this.storage.update(key, value);
 			if (first == null) {
-				first = last = new Node(null, null, value);
-				continue;
+				first = value;
+				firstKey = key;
 			}
-			Node node = new Node(last.uuid, null, value);
-			last.nextUUID = node.uuid;
-			last.save();
-			last = node;
+			last = value;
+			lastKey = key;
 		}
-
-		last.nextUUID = after.uuid;
-		last.save();
-
-		if (after == this.head) {
-			this.head = first;
+		Node after = this.getNodeAt(index);
+		if (after.getPrevKey() == null) {
+			// the after is the had
+			this.head.setPrevKey(lastKey);
+			this.head.save();
+			this.nextAccessor.set(last, this.head.getKey());
+			this.storage.update(lastKey, last);
+			this.head = this.load(lastKey);
 		} else {
 			Node before = after.getPrevNode();
-			before.nextUUID = first.uuid;
+			before.setNextKey(firstKey);
+			this.prevAccessor.set(first, before.getKey());
+			this.storage.update(firstKey, first);
 			before.save();
-			first.prevUUID = before.uuid;
-			first.save();
+
+			after.setPrevKey(lastKey);
+			this.nextAccessor.set(last, after.getKey());
+			this.storage.update(lastKey, last);
+			after.save();
 		}
 
-		after.prevUUID = last.uuid;
-		after.save();
 		return true;
 	}
 
@@ -361,7 +376,7 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	}
 
 	@Override
-	public boolean removeIf(Predicate<? super T> filter) {
+	public boolean removeIf(Predicate<? super V> filter) {
 		if (filter == null) {
 			throw new NullPointerException();
 		}
@@ -374,14 +389,14 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 			if (node == null) {
 				break;
 			}
-			T value = node.getValue();
+			V value = node.getValue();
 			if (!filter.test(value)) {
 				node = node.getNextNode();
 				continue;
 			}
 
 			Node next = null;
-			if (node.getNextUUID() != null) {
+			if (node.getNextKey() != null) {
 				next = node.getNextNode();
 			}
 			this.unlinkAndSave(node);
@@ -398,17 +413,17 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	}
 
 	@Override
-	public void replaceAll(UnaryOperator<T> operator) {
+	public void replaceAll(UnaryOperator<V> operator) {
 		for (Node node = this.head; node != null; node = node.getNextNode()) {
-			T value = node.getValue();
+			V value = node.getValue();
 			value = operator.apply(value);
-			node.value = (value);
+			node.setValue(value);
 			node.save();
 		}
 	}
 
 	@Override
-	public void sort(Comparator<? super T> c) {
+	public void sort(Comparator<? super V> c) {
 
 	}
 
@@ -419,8 +434,8 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	}
 
 	@Override
-	public T get(int index) {
-		Node node = this.getNode(index);
+	public V get(int index) {
+		Node node = this.getNodeAt(index);
 		if (node == null) {
 			return null;
 		}
@@ -428,27 +443,44 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	}
 
 	@Override
-	public T set(int index, T element) {
-		Node node = this.getNode(index);
-		T result = node.getValue();
-		node.value = (element);
+	public V set(int index, V element) {
+		Node node = this.getNodeAt(index);
+		K prevKeyBefore = node.getPrevKey();
+		K nextKeyBefore = node.getNextKey();
+		K keyBefore = node.getKey();
+		V result = node.getValue();
+		node.setValue(element);
+		if (node.getPrevKey() != prevKeyBefore) {
+			throw new IllegalStateException("You cannot change the chain of node with Set operation. Prev key was: " + prevKeyBefore.toString() + " after set it is: " + node.getPrevKey().toString());
+		}
+
+		if (node.getNextKey() != nextKeyBefore) {
+			throw new IllegalStateException("You cannot change the chain of node with Set operation. next key  was: " + nextKeyBefore.toString() + " after set it is: " + node.getNextKey().toString());
+		}
+
+		if (node.getKey() != keyBefore) {
+			throw new IllegalStateException("You cannot change the chain of node with Set operation. key was: " + keyBefore.toString() + " after set it is: " + node.getKey().toString());
+		}
+
 		node.save();
 		return result;
 	}
 
 	@Override
-	public void add(int index, T element) {
-		Node before = this.getNode(index);
-		Node node = new Node(before.getUUID(), before.getNextUUID(), element);
-		before.nextUUID = (node.getNextUUID());
+	public void add(int index, V element) {
+		Node before = this.getNodeAt(index);
+		Node node = new Node(element);
+		before.setNextKey(node.getKey());
+		node.setPrevKey(before.getKey());
+
 		before.save();
 		node.save();
 	}
 
 	@Override
-	public T remove(int index) {
-		Node node = this.getNode(index);
-		T result = node.value;
+	public V remove(int index) {
+		Node node = this.getNodeAt(index);
+		V result = node.getValue();
 		this.unlinkAndSave(node);
 		return result;
 	}
@@ -468,19 +500,19 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	}
 
 	@Override
-	public ListIterator<T> listIterator() {
+	public ListIterator<V> listIterator() {
 		return new NodeForwardListiterator();
 	}
 
 	@Override
-	public ListIterator<T> listIterator(int index) {
-		return new NodeForwardListiterator(this.getNode(index), index);
+	public ListIterator<V> listIterator(int index) {
+		return new NodeForwardListiterator(this.getNodeAt(index), index);
 	}
 
 	@Override
-	public List<T> subList(int fromIndex, int toIndex) {
-		List<T> result = new LinkedList<>();
-		Node node = this.getNode(fromIndex);
+	public List<V> subList(int fromIndex, int toIndex) {
+		List<V> result = new LinkedList<>();
+		Node node = this.getNodeAt(fromIndex);
 		if (node == null) {
 			return result;
 		}
@@ -492,22 +524,22 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 	}
 
 	@Override
-	public Spliterator<T> spliterator() {
+	public Spliterator<V> spliterator() {
 		return null;
 	}
 
 	@Override
-	public Stream<T> stream() {
+	public Stream<V> stream() {
 		return null;
 	}
 
 	@Override
-	public Stream<T> parallelStream() {
+	public Stream<V> parallelStream() {
 		return null;
 	}
 
 
-	private class NodeForwardListiterator implements ListIterator<T> {
+	private class NodeForwardListiterator implements ListIterator<V> {
 		private boolean started = false;
 		private Node actual;
 		private Long position;
@@ -528,7 +560,7 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 			if (!this.started) {
 				return this.actual != null;
 			}
-			return this.actual.getNextUUID() != null;
+			return this.actual.getNextKey() != null;
 		}
 
 		public Node nextNode() {
@@ -546,10 +578,10 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 			if (!this.started) {
 				return this.actual != null;
 			}
-			return this.actual.getPrevUUID() != null;
+			return this.actual.getPrevKey() != null;
 		}
 
-		public IVLinkedListNode<T> prevNode() {
+		public Node prevNode() {
 			if (!this.started) {
 				this.started = true;
 				return this.actual;
@@ -560,8 +592,8 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 		}
 
 		@Override
-		public T previous() {
-			IVLinkedListNode<T> node = this.prevNode();
+		public V previous() {
+			Node node = this.prevNode();
 			if (node == null) {
 				return null;
 			}
@@ -569,8 +601,8 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 		}
 
 		@Override
-		public T next() {
-			IVLinkedListNode<T> node = this.nextNode();
+		public V next() {
+			Node node = this.nextNode();
 			if (node == null) {
 				return null;
 			}
@@ -599,36 +631,45 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 		}
 
 		@Override
-		public void set(T value) {
+		public void set(V value) {
 			if (this.actual == null) {
 				return;
 			}
-			this.actual.value = (value);
+			this.actual.setValue(value);
 			this.actual.save();
 		}
 
 		@Override
-		public void add(T value) {
+		public void add(V value) {
 			if (this.actual == null) {
 				if (!this.started) { // we have not started it, so this list is empty
 					VLinkedList.this.addFirst(value);
-				} else { // we stared, and rerached the last
+				} else { // we stared, and reached the last
 					VLinkedList.this.addLast(value);
 				}
 				return;
 			}
-			if (this.actual.getNextUUID() == null) { // last node
+			if (this.actual.getNextKey() == null) { // last node
 				VLinkedList.this.addLast(value);
 				return;
 			}
 			// we have next, and we have prev
 			Node next = this.actual.getNextNode();
-			Node node = new Node(this.actual.getUUID(), this.actual.getNextUUID(), value);
-			this.actual.nextUUID = (node.getUUID());
-			next.prevUUID = (node.getUUID());
+			Node node = new Node(value);
 
-			node.save();
+			// We insert the new node between the actual and the next
+			node.setNextKey(next.getKey());
+			node.setPrevKey(this.actual.getKey());
+
+			// we set the next node to the new node
+			this.actual.setNextKey(node.getKey());
+
+			// and we set the old next node previous node to the new node
+			next.setPrevKey(node.getKey());
+
+			// and we save all
 			this.actual.save();
+			node.save();
 			next.save();
 		}
 	}
@@ -646,7 +687,7 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 			if (this.actual == null) {
 				return false;
 			}
-			return this.actual.getNextUUID() != null;
+			return this.actual.getNextKey() != null;
 		}
 
 		public Node nextNode() {
@@ -674,7 +715,7 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 			if (this.actual == null) {
 				return false;
 			}
-			return this.actual.getPrevUUID() != null;
+			return this.actual.getPrevKey() != null;
 		}
 
 		public Node nextNode() {
@@ -698,7 +739,7 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 		}
 	}
 
-	private Node getNode(long position) {
+	private Node getNodeAt(long position) {
 		if (this.storage.entries() <= position) {
 			throw new IndexOutOfBoundsException("The requested position " + position + " is out of the list boundary: " + this.storage.entries());
 		}
@@ -764,61 +805,54 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 		return result;
 	}
 
-	private Node load(UUID uuid) {
-		if (this.head != null && this.head.uuid == uuid) {
+	private Node load(K key) {
+		if (this.head != null && this.head.getKey().equals(key)) {
 			return this.head;
 		}
-		if (this.tail != null && this.tail.uuid == uuid) {
+		if (this.tail != null && this.tail.getKey().equals(key)) {
 			return this.tail;
 		}
-		Node result = new Node();
-		IVLinkedListNode<T> node = this.storage.read(uuid);
-		result.uuid = uuid;
-		result.nextUUID = node.getNextUUID();
-		result.prevUUID = node.getPrevUUID();
-		result.value = node.getValue();
+		V value = this.storage.read(key);
+		Node result = new Node(value);
 		return result;
 	}
 
 
 	public void unlinkAndSave(Node node) {
-		if (node.nextUUID == null && node.prevUUID == null) {
+		if (node.getNextKey() == null && node.getPrevKey() == null) {
 			this.head = VLinkedList.this.tail = null;
-			this.storage.delete(node.uuid);
+			this.storage.delete(node.getKey());
 			return;
 		}
 		Node prev;
 		Node next;
-		if (node.nextUUID == null) {
+		if (node.getNextKey() == null) {
 			prev = node.getPrevNode();
-			prev.nextUUID = null;
+			prev.setNextKey(null);
 			prev.save();
-			node.prevUUID = null;
-			this.storage.delete(node.uuid);
+			this.storage.delete(node.getKey());
 			this.tail = prev;
 			return;
 		} else {
 			next = node.getNextNode();
 		}
 
-		if (node.prevUUID == null) {
+		if (node.getPrevKey() == null) {
 			next = node.getNextNode();
-			next.prevUUID = null;
+			next.setPrevKey(null);
 			next.save();
-			node.nextUUID = null;
-			this.storage.delete(node.uuid);
+			this.storage.delete(node.getKey());
 			this.head = next;
 			return;
 		} else {
 			prev = node.getPrevNode();
 		}
 
-		next.prevUUID = prev.uuid;
-		prev.nextUUID = next.uuid;
-		node.nextUUID = node.prevUUID = null;
+		next.setPrevKey(prev.getKey());
+		prev.setNextKey(next.getKey());
 		prev.save();
 		next.save();
-		this.storage.delete(node.uuid);
+		this.storage.delete(node.getKey());
 	}
 
 	public void linkAfter(Node node) {
@@ -829,58 +863,96 @@ public class VLinkedList<T> implements List<T>, Deque<T> {
 
 	}
 
-	private class Node implements IVLinkedListNode<T> {
-		private UUID uuid;
-		private UUID nextUUID;
-		private UUID prevUUID;
-		private T value;
+	private class Node {
 
-		private Node() {
-		}
+		K key;
+		K nextKey;
+		K prevKey;
+		V value;
 
-		public Node(UUID prevUUID, UUID nextUUID, T value) {
-			this.uuid = UUID.randomUUID();
-			this.nextUUID = nextUUID;
-			this.prevUUID = prevUUID;
+		public Node(V value) {
 			this.value = value;
+			this.load();
 		}
 
-		public UUID getUUID() {
-			return this.uuid;
+		void load() {
+			this.key = VLinkedList.this.keyAccessor.get(value);
+			this.nextKey = VLinkedList.this.nextAccessor.get(value);
+			this.prevKey = VLinkedList.this.prevAccessor.get(value);
 		}
 
-		public Node getNextNode() {
-			if (this.nextUUID == null) {
+		void setValue(V value) {
+			this.value = value;
+			this.load();
+		}
+
+		K getNextKey() {
+			return this.nextKey;
+		}
+
+		void setNextKey(K key){
+			this.nextKey = key;
+		}
+
+		K getPrevKey() {
+			return this.prevKey;
+		}
+
+		void setPrevKey(K key){
+			this.prevKey = key;
+		}
+
+		Node getNextNode() {
+			if (this.nextKey == null) {
 				return null;
 			}
-			return VLinkedList.this.load(this.nextUUID);
+			V nextValue = VLinkedList.this.storage.read(this.nextKey);
+			return new Node(nextValue);
 		}
 
-		public Node getPrevNode() {
-			if (this.prevUUID == null) {
+		Node getPrevNode() {
+			if (this.prevKey == null) {
 				return null;
 			}
-			return VLinkedList.this.load(this.prevUUID);
+			V prevValue = VLinkedList.this.storage.read(this.prevKey);
+			return new Node(prevValue);
 		}
 
-		@Override
-		public UUID getNextUUID() {
-			return this.nextUUID;
-		}
-
-		@Override
-		public UUID getPrevUUID() {
-			return this.prevUUID;
-		}
-
-		@Override
-		public T getValue() {
+		public V getValue() {
 			return this.value;
 		}
 
 		public void save() {
-			VLinkedList.this.storage.update(this.uuid, this);
+			VLinkedList.this.prevAccessor.set(this.value, this.prevKey);
+			VLinkedList.this.nextAccessor.set(this.value, this.nextKey);
+			VLinkedList.this.storage.update(this.key, this.value);
+			if (this.key == null) {
+				return;
+			}
+			if (VLinkedList.this.head != null) {
+				if (VLinkedList.this.head == this) {
+					return;
+				}
+				K headKey = VLinkedList.this.head.getKey();
+				if (this.key.equals(headKey)) {
+					VLinkedList.this.head = this;
+				}
+			}
+			if (VLinkedList.this.tail != null) {
+				if (VLinkedList.this.tail == this) {
+					return;
+				}
+				K tailKey = VLinkedList.this.tail.getKey();
+				if (this.key.equals(tailKey)) {
+					VLinkedList.this.tail = this;
+				}
+			}
 		}
+
+		K getKey() {
+			return this.key;
+		}
+
 	}
 
 	@Override

@@ -39,3 +39,15 @@ interface Groupper<K, V> implements IStorage<K, List<V>>:
 ArrayList, and LinkedList should have arbitrary key and not a fixed one.
 This involves a couple of restriction in case of linkedlist, that a value should
 hold information about the next and the prev item.
+
+
+ArrayList:
+ either IStorage<Long, V>, or we need a map, where we maintain which long belongs to which key
+VAraryList<K, V>(IStorage<K, V>, IMapper<K, Long>)
+VMappedArrayList<K, V>(IStorage<K, V>, Map<Long, K> map)
+
+LinkedList:
+VLinkedList<K, V>(IStorage<K, V>), but V has next, prev and key fields
+VLinkedNodesList<K, V>(IStorage<K, INode<K, V>> storage)
+
+LinkedList is messy, and need to be rewritten.

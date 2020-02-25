@@ -9,10 +9,14 @@ import org.junit.jupiter.api.Test;
  * The target storage needs to inherit this one and overwrite the makeStorage protected methods to test the actual storage
  */
 
-public interface ListTest<T extends List<String>> {
+public interface ListTest<V, T extends List<V>> {
 
-	List<String> makeList(String... items);
+	List<V> makeList(String... items);
 
+	V toItem(String item);
+	List<V> asArrayList(String... items);
+	String getValue(V value);
+	void setValue(V item, String value);
 
 	/***********************************************************************
 	 * Scenario: Focuses on projection functionality
@@ -28,7 +32,7 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldExecuteToArray() {
 		// Given
-		List<String> list = this.makeList("value", null, "value2");
+		List<V> list = this.makeList("value", null, "value2");
 
 		// When
 		Object[] values = list.toArray();
@@ -49,10 +53,10 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldExecuteSubList() {
 		// Given
-		List<String> list = this.makeList("value", null, "value2");
+		List<V> list = this.makeList("value", null, "value2");
 
 		// When
-		List<String> sublist = list.subList(1, 2);
+		List<V> sublist = list.subList(1, 2);
 		Object[] values = sublist.toArray();
 
 		// Then
@@ -75,7 +79,7 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldParallelStream() {
 		// Given
-		List<String> list = this.makeList("value", null, "value2");
+		List<V> list = this.makeList("value", null, "value2");
 
 		// When
 //		assertThrows(NotImplementedException.class, () -> {
@@ -95,7 +99,7 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldSplitIterate() {
 		// Given
-		List<String> list = this.makeList("value", null, "value2");
+		List<V> list = this.makeList("value", null, "value2");
 
 		// When
 //		assertThrows(NotImplementedException.class, () -> {
@@ -115,18 +119,18 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldListiterate() {
 		// Given
-		List<String> list = this.makeList("value", null, "value2");
+		List<V> list = this.makeList("value", null, "value2");
 
 		// When
-		List<String> values = new ArrayList<>();
-		for (ListIterator<String> it = list.listIterator(2); it.hasPrevious(); ) {
+		List<V> values = new ArrayList<>();
+		for (ListIterator<V> it = list.listIterator(2); it.hasPrevious(); ) {
 			values.add(it.previous());
 		}
 
 		// Then
-		assertEquals("value2", values.get(0));
-		assertEquals(null, values.get(1));
-		assertEquals("value", values.get(2));
+		assertEquals(toItem("value"), values.get(2));
+		assertEquals(toItem(null), values.get(1));
+		assertEquals(toItem("value2"), values.get(0));
 	}
 
 	/**
@@ -139,18 +143,18 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldIterate() {
 		// Given
-		List<String> list = this.makeList("value", null, "value2");
+		List<V> list = this.makeList("value", null, "value2");
 
 		// When
-		List<String> values = new ArrayList<>();
-		for (Iterator<String> it = list.iterator(); it.hasNext(); ) {
+		List<V> values = new ArrayList<>();
+		for (Iterator<V> it = list.iterator(); it.hasNext(); ) {
 			values.add(it.next());
 		}
 
 		// Then
-		assertEquals("value", values.get(0));
-		assertEquals(null, values.get(1));
-		assertEquals("value2", values.get(2));
+		assertEquals(toItem("value"), values.get(0));
+		assertEquals(toItem(null), values.get(1));
+		assertEquals(toItem("value2"), values.get(2));
 	}
 
 	/**
@@ -186,7 +190,7 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldClear() {
 		// Given
-		List<String> list = this.makeList("value", null, "value2");
+		List<V> list = this.makeList("value", null, "value2");
 
 		// When
 		list.clear();
@@ -206,7 +210,7 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldThrowIndexOutOfBoundsException() {
 		// Given
-		List<String> list = this.makeList();
+		List<V> list = this.makeList();
 
 		// When
 		assertThrows(IndexOutOfBoundsException.class, () -> {
@@ -225,13 +229,15 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldSetNullValue() {
 		// Given
-		List<String> list = this.makeList("value");
+		List<V> list = this.makeList("value");
 
 		// When
-		list.set(0, null);
+		V item = list.get(0);
+		setValue(item, null);
+		list.set(0, item);
 
 		// Then
-		assertNull(list.get(0));
+		assertNull(getValue(list.get(0)));
 		assertEquals(1, list.size());
 	}
 
@@ -246,15 +252,15 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldRetain() {
 		// Given
-		List<String> list = this.makeList("value", null, "value2");
+		List<V> list = this.makeList("value", null, "value2");
 
 		// When
-		List<String> retain = new ArrayList<>();
-		retain.add(null);
+		List<V> retain = new ArrayList<>();
+		retain.add(toItem(null));
 		list.retainAll(retain);
 
 		// Then
-		assertFalse(Arrays.asList("value1", "value2").stream().anyMatch(list::contains));
+		assertFalse(asArrayList("value1", "value2").stream().anyMatch(list::contains));
 		assertEquals(1, list.size());
 	}
 
@@ -269,13 +275,13 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldRemoveOdds() {
 		// Given
-		List<String> list = this.makeList("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+		List<V> list = this.makeList("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
 
 		// When
-		list.removeIf(item -> Integer.valueOf(item) % 2 == 1);
+		list.removeIf(item -> Integer.valueOf(getValue(item)) % 2 == 1);
 
 		// Then
-		assertArrayEquals(Arrays.asList("2", "4", "6", "8", "10").toArray(), list.toArray());
+		assertArrayEquals(asArrayList("2", "4", "6", "8", "10").toArray(), list.toArray());
 		assertEquals(5, list.size());
 	}
 
@@ -291,13 +297,13 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldRemoveNotNullItems() {
 		// Given
-		List<String> list = this.makeList("value", null, "value2");
+		List<V> list = this.makeList("value", null, "value2");
 
 		// When
-		list.removeIf(Objects::isNull);
+		list.removeIf(item -> getValue(item) == null);
 
 		// Then
-		assertFalse(list.contains(null));
+		assertFalse(list.contains(toItem(null)));
 		assertFalse(list.isEmpty());
 		assertEquals(2, list.size());
 	}
@@ -314,13 +320,13 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldRemoveItem() {
 		// Given
-		List<String> list = this.makeList("value", null, "value2");
+		List<V> list = this.makeList("value", null, "value2");
 
 		// When
-		list.remove(null);
+		list.remove(toItem(null));
 
 		// Then
-		assertFalse(list.contains(null));
+		assertFalse(list.contains(toItem(null)));
 		assertFalse(list.isEmpty());
 		assertEquals(2, list.size());
 	}
@@ -336,10 +342,10 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldRemoveAllItems() {
 		// Given
-		List<String> list = this.makeList("v1", null, "v2");
+		List<V> list = this.makeList("v1", null, "v2");
 
 		// When
-		List<String> items = Arrays.asList("v2", null);
+		List<V> items = asArrayList("v2", null);
 		list.removeAll(items);
 
 		// Then
@@ -359,13 +365,13 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldAddItem() {
 		// Given
-		List<String> list = this.makeList();
+		List<V> list = this.makeList();
 
 		// When
-		list.add("value");
+		list.add(toItem("value"));
 
 		// Then
-		assertTrue(list.contains("value"));
+		assertTrue(list.contains(toItem("value")));
 		assertFalse(list.isEmpty());
 		assertEquals(1, list.size());
 	}
@@ -382,10 +388,10 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldAddAllItems() {
 		// Given
-		List<String> list = this.makeList();
+		List<V> list = this.makeList();
 
 		// When
-		List<String> items = Arrays.asList("v1", "v2", "v3");
+		List<V> items = asArrayList("v1", "v2", "v3");
 		list.addAll(items);
 
 		// Then
@@ -405,14 +411,14 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldAddAllItemsAtPosition() {
 		// Given
-		List<String> list = this.makeList("v1", "v5");
+		List<V> list = this.makeList("v1", "v5");
 
 		// When
-		List<String> items = Arrays.asList("v2", "v3", "v4");
+		List<V> items = asArrayList("v2", "v3", "v4");
 		list.addAll(1, items);
 
 		// Then
-		assertArrayEquals(Arrays.asList("v1", "v2", "v3", "v4", "v5").toArray(), list.toArray());
+		assertArrayEquals(asArrayList("v1", "v2", "v3", "v4", "v5").toArray(), list.toArray());
 		assertEquals(5, list.size());
 	}
 
@@ -431,17 +437,17 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldGetIndexOfs() {
 		// Given
-		List<String> list = this.makeList("value", null, "value", null);
+		List<V> list = this.makeList("value", null, "value", null);
 
 		// When
 
 		// Then
-		assertEquals(0, list.indexOf("value"));
-		assertEquals(2, list.lastIndexOf("value"));
-		assertEquals(1, list.indexOf(null));
-		assertEquals(3, list.lastIndexOf(null));
-		assertEquals(-1, list.indexOf("non-value"));
-		assertEquals(-1, list.lastIndexOf("non-value"));
+		assertEquals(0, list.indexOf(toItem("value")));
+		assertEquals(2, list.lastIndexOf(toItem("value")));
+		assertEquals(1, list.indexOf(toItem(null)));
+		assertEquals(3, list.lastIndexOf(toItem(null)));
+		assertEquals(-1, list.indexOf(toItem("non-value")));
+		assertEquals(-1, list.lastIndexOf(toItem("non-value")));
 	}
 
 	/**
@@ -454,13 +460,13 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldContainsAllValue() {
 		// Given
-		List<String> list = this.makeList("value", null);
+		List<V> list = this.makeList("value", null);
 
 		// When
 
 		// Then
-		assertTrue(list.containsAll(Arrays.asList("value", null)));
-		assertFalse(list.containsAll(Arrays.asList("non-value", null)));
+		assertTrue(list.containsAll(asArrayList("value", null)));
+		assertFalse(list.containsAll(asArrayList("non-value", null)));
 	}
 
 
@@ -474,14 +480,14 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldContainsValue() {
 		// Given
-		List<String> list = this.makeList("value", null);
+		List<V> list = this.makeList("value", null);
 
 		// When
 
 		// Then
-		assertTrue(list.contains("value"));
-		assertTrue(list.contains(null));
-		assertFalse(list.contains("not-value"));
+		assertTrue(list.contains(toItem("value")));
+		assertTrue(list.contains(toItem(null)));
+		assertFalse(list.contains(toItem("not-value")));
 	}
 
 	/**
@@ -494,14 +500,14 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldGetValue() {
 		// Given
-		List<String> list = this.makeList("value");
+		List<V> list = this.makeList("value");
 
 		// When
-		String value = list.get(0);
+		V value = list.get(0);
 
 		// Then
 		assertEquals(1, list.size());
-		assertEquals("value", value);
+		assertEquals(toItem("value"), value);
 		assertFalse(list.isEmpty());
 	}
 
@@ -517,7 +523,7 @@ public interface ListTest<T extends List<String>> {
 	@Test
 	default void shouldBeEmpty() {
 		// Given
-		List<String> list = this.makeList();
+		List<V> list = this.makeList();
 
 		// When
 

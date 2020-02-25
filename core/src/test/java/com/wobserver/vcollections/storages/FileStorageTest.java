@@ -38,7 +38,7 @@ public class FileStorageTest implements StorageTest<String, String, FileStorage<
 		}
 		IStorage<String, String> result = null;
 		try {
-			result = new FileStorage<>(SimpleMapperFactory.make(String.class, String.class), String.class, new ObjectMapper(), tempDir.getPath(), new KeyGeneratorFactory().make(String.class), maxSize);
+			result = new FileStorage<>(PrimitiveTypesMapperFactory.make(String.class, String.class), String.class, new ObjectMapper(), tempDir.getPath(), new KeyGeneratorFactory().make(String.class), maxSize);
 			IStorage<String, String> finalResult = result;
 			pairs.entrySet().forEach(entry -> finalResult.update(entry.getKey(), entry.getValue()));
 		} catch (IOException e) {

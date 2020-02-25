@@ -1,5 +1,6 @@
 package com.wobserver.vcollections.builders;
 
+import com.wobserver.vcollections.storages.FieldAccessor;
 import java.lang.reflect.*;
 import java.util.Arrays;
 import java.util.List;
@@ -40,6 +41,11 @@ public class FieldAccessBuilder<TField, TObject> extends AbstractBuilder {
 	public BiConsumer<TObject, TField> getKeySetter() {
 		this.run();
 		return this.setter;
+	}
+	
+	public FieldAccessor getFieldAccessor() {
+		this.run();
+		return new FieldAccessor(this.setter, this.getter);
 	}
 
 	/**

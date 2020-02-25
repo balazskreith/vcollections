@@ -1,9 +1,10 @@
 package com.wobserver.vcollections;
 
+import com.wobserver.vcollections.storages.IMapper;
 import com.wobserver.vcollections.storages.IStorage;
+import com.wobserver.vcollections.storages.PrimitiveTypesMapperFactory;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -12,11 +13,16 @@ import java.util.stream.StreamSupport;
 public class VArrayList<K, V> implements List<V> {
 
 	private final IStorage<K, V> storage;
-	private final Function<Long, K> keyMapper;
-	
-	public VArrayList(IStorage<K, V> storage, Function<Long, K> keyMapper) {
+	private final IMapper<K, Long> keyMapper;
+
+	public VArrayList(IStorage<K, V> storage, IMapper<K, Long> keyMapper) {
 		this.storage = storage;
 		this.keyMapper = keyMapper;
+	}
+
+	public VArrayList(IStorage<K, V> storage, Class<K> keyType) {
+		this.storage = storage;
+		this.keyMapper = PrimitiveTypesMapperFactory.make(keyType, Long.class);
 	}
 
 	@Override
@@ -34,15 +40,10 @@ public class VArrayList<K, V> implements List<V> {
 
 	@Override
 	public boolean contains(Object o) {
+		Predicate<V> found = o == null ? v -> v == null : v -> o.equals(v);
 		for (Iterator<V> it = this.iterator(); it.hasNext(); ) {
 			V value = it.next();
-			if (o == null) {
-				if (value == null) {
-					return true;
-				}
-				continue;
-			}
-			if (o.equals(value)) {
+			if (found.test(value)) {
 				return true;
 			}
 		}
@@ -62,15 +63,13 @@ public class VArrayList<K, V> implements List<V> {
 		Long index = 0L;
 		for (Iterator<V> it = this.iterator(); it.hasNext(); ++index) {
 			V before = it.next();
-			action.accept(before);
-			V after = it.next();
-			if (before == null) {
-				if (after != null) {
+			V after = before;
+			action.accept(after);
+			if (before != null) {
+				if (!before.equals(after)) {
 					this.storage.update(this.getKeyFor(index), after);
 				}
-			} else if (!before.equals(after)) {
-				this.storage.update(this.getKeyFor(index), after);
-			}
+			}  
 		}
 	}
 
@@ -283,6 +282,7 @@ public class VArrayList<K, V> implements List<V> {
 		}
 		V result = this.storage.read(this.getKeyFor(end + 1L));
 		this.storage.delete(this.getKeyFor(end));
+		
 		return result;
 	}
 
@@ -295,8 +295,9 @@ public class VArrayList<K, V> implements List<V> {
 		} else {
 			isEqual = v -> o.equals(v);
 		}
-		for (Iterator<V> it = this.iterator(); it.hasNext(); ++index) {
-			V value = it.next();
+		for (index = 0L; index < this.size(); ++index) {
+			K key = this.getKeyFor(index);
+			V value = this.storage.read(key);
 			if (isEqual.test(value)) {
 				return index.intValue();
 			}
@@ -307,15 +308,10 @@ public class VArrayList<K, V> implements List<V> {
 	@Override
 	public int lastIndexOf(Object o) {
 		Long index = this.storage.entries() - 1;
+		Predicate<V> found = o ==null ? v -> v == null : v -> o.equals(v);
 		for (ListIterator<V> it = this.listIterator(this.size() - 1); it.hasPrevious(); --index) {
 			V value = it.previous();
-			if (o == null) {
-				if (value == null) {
-					return index.intValue();
-				}
-				continue;
-			}
-			if (o.equals(value)) {
+			if (found.test(value)) {
 				return index.intValue();
 			}
 		}
@@ -365,57 +361,39 @@ public class VArrayList<K, V> implements List<V> {
 	private class IteratorImpl implements Iterator<V> {
 		protected Long index;
 		protected boolean modified;
-		private Iterator<Map.Entry<K, V>> iterator;
-		
-		IteratorImpl(Iterator<Map.Entry<K, V>> iterator, int start) {
-			this.iterator = iterator;
-			for (int i = 0; i < start; ++i) {
-				this.iterator.next();
-			}
-		}
+		protected long end;
 		
 		IteratorImpl(int start) {
-			
 			this.index = Long.valueOf(start);
+			this.end = VArrayList.this.storage.entries();
 		}
-
-		IteratorImpl(long start) {
-			this.index = start;
-		}
-
+		
 		public final boolean hasNext() {
-			return this.iterator.hasNext();
-//			return 0 <= this.index && this.index < VArrayList.this.storage.entries();
+			return this.index < this.end;
 		}
 
 		public final V next() {
-			Map.Entry<K, V> entry = this.iterator.next();
-			return entry.getValue(); 
-//			if (VArrayList.this.storage.entries() <= this.index) {
-//				throw new IndexOutOfBoundsException();
-//			}
-//			K key = VArrayList.this.getKeyFor(this.index);
-//			V result = VArrayList.this.storage.read(key);
-//			this.modified = false;
-//			++this.index;
-//			return result;
-		}
-
-		public final void remove() {
 			if (VArrayList.this.storage.entries() <= this.index) {
 				throw new IndexOutOfBoundsException();
 			}
-			if (this.modified || this.index < 1) {
-				throw new IllegalStateException();
-			}
 			K key = VArrayList.this.getKeyFor(this.index);
-			VArrayList.this.storage.delete(key);
-			this.modified = true;
+			V result = VArrayList.this.storage.read(key);
+			this.modified = false;
+			++this.index;
+			return result;
+		}
+
+		public final void remove() {
+			VArrayList.this.remove(this.index);
+			--this.end;
+			this.modified = false;
 		}
 	}
 
 	private class ListIteratorImpl extends IteratorImpl implements ListIterator<V> {
-
+		
+		private V prev;
+		
 		ListIteratorImpl(int start) {
 			super(start);
 		}
@@ -479,11 +457,13 @@ public class VArrayList<K, V> implements List<V> {
 
 
 	private K getKeyFor(int index) {
-		return this.keyMapper.apply((long) index);
+		return this.keyMapper.decode((long) index);
 	}
 
 	private K getKeyFor(long index) {
-		return this.keyMapper.apply( index);
+		return this.keyMapper.decode(index);
 	}
+	
+	private Long getIndexFor(K key) { return this.keyMapper.encode(key); }
 
 }

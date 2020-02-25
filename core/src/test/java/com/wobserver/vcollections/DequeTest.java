@@ -12,10 +12,13 @@ import org.junit.jupiter.api.Test;
  * The target storage needs to inherit this one and overwrite the makeStorage protected methods to test the actual storage
  */
 
-public interface DequeTest<T extends Deque<String>> {
+public interface DequeTest<V, T extends Deque<V>> {
 
-	Deque<String> makeDeque(String... items);
-
+	Deque<V> makeDeque(String... items);
+	V toItem(String item);
+	List<V> asArrayList(String... items);
+	String getValue(V value);
+	
 	/**
 	 * <b>Given</b>: an empty list
 	 *
@@ -26,13 +29,14 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldPeek() {
 		// Given
-		Deque<String> deque = makeDeque();
+		Deque<V> deque = makeDeque();
 
 		// When
-		deque.offer("value");
+		V item = toItem("value");
+		deque.offer(item);
 
 		// Then
-		assertEquals("value", deque.peek());
+		assertEquals(toItem("value"), deque.peek());
 	}
 
 	/**
@@ -45,10 +49,10 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldAddAll() {
 		// Given
-		Deque<String> deque = makeDeque();
+		Deque<V> deque = makeDeque();
 
 		// When
-		List<String> values = Arrays.asList("v1", "v2", "v3");
+		List<V> values = asArrayList("v1", "v2", "v3");
 		deque.addAll(values);
 
 		// Then
@@ -66,14 +70,15 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldAdd() {
 		// Given
-		Deque<String> deque = makeDeque();
+		Deque<V> deque = makeDeque();
 
 		// When
-		deque.add("value");
+		V item = toItem("value");
+		deque.add(item);
 
 		// Then
-		assertEquals("value", deque.element());
-		assertEquals("value", deque.remove());
+		assertEquals(toItem("value"), deque.element());
+		assertEquals(toItem("value"), deque.remove());
 	}
 
 	/**
@@ -86,13 +91,13 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldRemoveFirst() {
 		// Given
-		Deque<String> deque = makeDeque("v1", "v2", "v1");
+		Deque<V> deque = makeDeque("v1", "v2", "v1");
 
 		// When
 		deque.removeFirst();
 
 		// Then
-		assertEquals("v2", deque.getFirst());
+		assertEquals(toItem("v2"), deque.getFirst());
 	}
 
 	/**
@@ -105,13 +110,13 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldRemoveLast() {
 		// Given
-		Deque<String> deque = makeDeque("v1", "v2", "v3");
+		Deque<V> deque = makeDeque("v1", "v2", "v3");
 
 		// When
 		deque.removeLast();
 
 		// Then
-		assertEquals("v2", deque.getLast());
+		assertEquals(toItem("v2"), deque.getLast());
 	}
 
 	/**
@@ -124,13 +129,13 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldRemoveFirstOccurrence() {
 		// Given
-		Deque<String> deque = makeDeque("v1", "v2", "v1");
+		Deque<V> deque = makeDeque("v1", "v2", "v1");
 
 		// When
-		deque.removeFirstOccurrence("v1");
+		deque.removeFirstOccurrence(toItem("v1"));
 
 		// Then
-		assertEquals("v2", deque.getFirst());
+		assertEquals(toItem("v2"), deque.getFirst());
 	}
 
 	/**
@@ -143,13 +148,13 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldRemoveLastOccurrence() {
 		// Given
-		Deque<String> deque = makeDeque("v1", "v2", "v1");
+		Deque<V> deque = makeDeque("v1", "v2", "v1");
 
 		// When
-		deque.removeLastOccurrence("v1");
+		deque.removeLastOccurrence(toItem("v1"));
 
 		// Then
-		assertEquals("v1", deque.getFirst());
+		assertEquals(toItem("v1"), deque.getFirst());
 	}
 
 	/**
@@ -162,15 +167,15 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldBePushed() {
 		// Given
-		Deque<String> deque = makeDeque("v1", "v2");
+		Deque<V> deque = makeDeque("v1", "v2");
 
 		// When
-		deque.push("v3");
+		deque.push(toItem("v3"));
 
 		// Then
-		assertEquals("v1", deque.pop());
-		assertEquals("v2", deque.pop());
-		assertEquals("v3", deque.pop());
+		assertEquals(toItem("v1"), deque.pop());
+		assertEquals(toItem("v2"), deque.pop());
+		assertEquals(toItem("v3"), deque.pop());
 
 	}
 
@@ -184,15 +189,15 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldBePolled() {
 		// Given
-		Deque<String> deque = makeDeque("v1", "v2");
+		Deque<V> deque = makeDeque("v1", "v2");
 
 		// When
-		deque.push("v3");
+		deque.push(toItem("v3"));
 
 		// Then
-		assertEquals("v1", deque.pollFirst());
-		assertEquals("v3", deque.pollLast());
-		assertEquals("v2", deque.poll());
+		assertEquals(toItem("v1"), deque.pollFirst());
+		assertEquals(toItem("v3"), deque.pollLast());
+		assertEquals(toItem("v2"), deque.poll());
 	}
 
 
@@ -206,13 +211,13 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldBeOfferedLast() {
 		// Given
-		Deque<String> deque = makeDeque("v1", "v2");
+		Deque<V> deque = makeDeque("v1", "v2");
 
 		// When
-		deque.offerLast("v3");
+		deque.offerLast(toItem("v3"));
 
 		// Then
-		assertEquals("v3", deque.peekLast());
+		assertEquals(toItem("v3"), deque.peekLast());
 	}
 
 	/**
@@ -225,13 +230,13 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldBeOfferedFirst() {
 		// Given
-		Deque<String> deque = makeDeque("v2", "v3");
+		Deque<V> deque = makeDeque("v2", "v3");
 
 		// When
-		deque.offerFirst("v1");
+		deque.offerFirst(toItem("v1"));
 
 		// Then
-		assertEquals("v1", deque.peekFirst());
+		assertEquals(toItem("v1"), deque.peekFirst());
 	}
 
 	/**
@@ -244,13 +249,13 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldBeAddedLast() {
 		// Given
-		Deque<String> deque = makeDeque("v1", "v2");
+		Deque<V> deque = makeDeque("v1", "v2");
 
 		// When
-		deque.addLast("v3");
+		deque.addLast(toItem("v3"));
 
 		// Then
-		assertEquals("v3", deque.getLast());
+		assertEquals(toItem("v3"), deque.getLast());
 	}
 
 	/**
@@ -263,12 +268,12 @@ public interface DequeTest<T extends Deque<String>> {
 	@Test
 	default void shouldBeAddedFirst() {
 		// Given
-		Deque<String> deque = makeDeque("v2", "v3");
+		Deque<V> deque = makeDeque("v2", "v3");
 
 		// When
-		deque.addFirst("v1");
+		deque.addFirst(toItem("v1"));
 
 		// Then
-		assertEquals("v1", deque.getFirst());
+		assertEquals(toItem("v1"), deque.getFirst());
 	}
 }
