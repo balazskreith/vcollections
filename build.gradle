@@ -46,8 +46,8 @@ subprojects {
     }
     ext.publish = true
     bintray {
-        user = 'balazskreith'
-        key = '75ad9d231b2e61cdc114f4900a147abd0bb1093d'
+        user = project.findProperty("bintray.user") ?: System.getenv("BINTRAY_USERNAME")
+        key =  project.findProperty("bintray.key") ?: System.getenv("BINTRAY_PASSWORD")
         publications = ['vcollections']
         pkg {
             repo = "vcollectinos"
@@ -81,10 +81,8 @@ subprojects {
                 name = "GitHubPackages"
                 url = uri("https://maven.pkg.github.com/wobserver/vcollections")
                 credentials {
-                    username = 'balazskreith'
-                    password = '061de7ee83081d918bde30b52316394c8aaf3ab4'
-//                    username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-//                    password = project.findProperty("gpr.key") ?: System.getenv("PASSWORD")
+                    username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                    password = project.findProperty("gpr.key") ?: System.getenv("PASSWORD")
                 }
             }
         }
