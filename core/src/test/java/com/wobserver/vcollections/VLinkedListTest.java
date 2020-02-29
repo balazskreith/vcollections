@@ -15,12 +15,12 @@ class VLinkedListTest implements ListTest<VLinkedListTest.Node, VLinkedList<UUID
 		public UUID next;
 		public UUID key;
 		public String value;
-		
+
 		@Override
 		public String toString() {
 			return this.value;
 		}
-		
+
 		@Override
 		public boolean equals(Object peer) {
 			if (peer == null) {
@@ -68,8 +68,9 @@ class VLinkedListTest implements ListTest<VLinkedListTest.Node, VLinkedList<UUID
 	}
 
 	@Override
-	public void setValue(Node item, String value) {
+	public Node setValue(Node item, String value) {
 		item.value = value;
+		return item;
 	}
 
 	private Node makeNode(UUID uuid, UUID prev, UUID next, String value) {
@@ -80,7 +81,7 @@ class VLinkedListTest implements ListTest<VLinkedListTest.Node, VLinkedList<UUID
 		result.prev = prev;
 		return result;
 	}
-	
+
 	private VLinkedList<UUID, Node> makeLinkedList(long maxCapacity, String... items) {
 		HashMap<UUID, Node> initialItems = new HashMap<>();
 		List<UUID> uuids = Stream.iterate(UUID.randomUUID(), i -> UUID.randomUUID()).limit(items.length).collect(Collectors.toList());
@@ -101,7 +102,7 @@ class VLinkedListTest implements ListTest<VLinkedListTest.Node, VLinkedList<UUID
 				} else {
 					last = node = makeNode(uuids.get(i), uuids.get(i - 1), uuids.get(i + 1), value);
 				}
-				
+
 				initialItems.put(uuids.get(i), node);
 			}
 		}
@@ -111,7 +112,7 @@ class VLinkedListTest implements ListTest<VLinkedListTest.Node, VLinkedList<UUID
 		FieldAccessor<Node, UUID> keyAccessor = new FieldAccessBuilder<>().withField("key").withClass(Node.class.getName()).getFieldAccessor();
 		FieldAccessor<Node, UUID> nextAccessor = new FieldAccessBuilder<>().withField("next").withClass(Node.class.getName()).getFieldAccessor();
 		if (first == null) {
-			result = new VLinkedList<>(storage,null, null, nextAccessor, prevAccessor, keyAccessor);
+			result = new VLinkedList<>(storage, null, null, nextAccessor, prevAccessor, keyAccessor);
 		} else {
 			result = new VLinkedList<>(storage, first, last.key, nextAccessor, prevAccessor, keyAccessor);
 		}
@@ -127,5 +128,5 @@ class VLinkedListTest implements ListTest<VLinkedListTest.Node, VLinkedList<UUID
 		return this.makeLinkedList(IStorage.NO_MAX_SIZE, items);
 	}
 
-	
+
 }

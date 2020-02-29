@@ -18,9 +18,13 @@ jobs:
         env:
           BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
           BINTRAY_API_KEY: ${{ secrets.BINTRAY_API_KEY }}
+          GITHUB_USER: ${{ secrets.GITHUB_USER }}
+          GITHUB_API_KEY: ${{ secrets.GITHUB_API_KEY }}
         run: |
           ./gradlew build
-          ./gradlew bintrayUpload
+          ./gradlew :core:bintrayUpload
+          ./gradlew :redis:bintrayUpload
+          ./gradlew :mongo:bintrayUpload
 
 #    - name: Publish artifact
 #      env:

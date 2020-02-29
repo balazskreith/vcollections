@@ -18,13 +18,14 @@ allprojects {
     repositories {
         mavenCentral()
         jcenter()
+        maven { url 'https://jitpack.io' }
     }
 
     group = 'com.wobserver.vcollections'
 
     task hello {
         doLast { task ->
-            println "I'm $task.project.name"
+            println "I'm $task.project.name "
         }
     }
 
@@ -35,28 +36,31 @@ allprojects {
     dependencies {
         testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
         testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
+        implementation 'com.github.wobserver:vcollections:' + project.version
     }
 }
 subprojects {
     apply plugin: "maven-publish"
+
     hello {
         doLast {
-            println "vcollectinos-${project.name}"
+            println "vcollectinos-${project.name}" + project.version
         }
     }
+
     ext.publish = true
     bintray {
-        user = project.findProperty("bintray.user") ?: System.getenv("BINTRAY_USERNAME")
-        key =  project.findProperty("bintray.key") ?: System.getenv("BINTRAY_PASSWORD")
+        user = project.findProperty("bintray.user") ?: System.getenv("BINTRAY_USER")
+        key = project.findProperty("bintray.key") ?: System.getenv("BINTRAY_API_KEY")
         publications = ['vcollections']
         pkg {
-            repo = "vcollectinos"
-            name = "vcollectinos-${project.name}"
+            repo = "vcollections"
+            name = "vcollections-${project.name}"
             userOrg = 'wobserver'
             licenses = ['AGPL-V3']
-            websiteUrl = 'https://github.com/woberver/vcollections/'
-            issueTrackerUrl = 'https://github.com/woberver/vcollections/issues'
-            vcsUrl = 'https://github.com/woberver/vcollections.git'
+            websiteUrl = 'https://github.com/wobserver/vcollections/'
+            issueTrackerUrl = 'https://github.com/wobserver/vcollections/issues'
+            vcsUrl = 'https://github.com/wobserver/vcollections.git'
             labels = ['collections', 'virtualization']
             publicDownloadNumbers = true
             version {
@@ -67,30 +71,34 @@ subprojects {
         }
     }
 
+    task sourceJar(type: Jar) {
+        classifier 'sources'
+        from sourceSets.main.allJava
+    }
+
     publishing {
-//        publications {
-//            vcollections(MavenPublication) {
-//                from components.java
-//                groupId project.group
-//                artifactId "vcollectinos-${project.name}"
-//                version project.version
-//            }
-//        }
         repositories {
             maven {
                 name = "GitHubPackages"
                 url = uri("https://maven.pkg.github.com/wobserver/vcollections")
                 credentials {
-                    username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
-                    password = project.findProperty("gpr.key") ?: System.getenv("PASSWORD")
+                    username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_USER")
+                    password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_API_KEY")
                 }
             }
         }
         publications {
+            vcollections(MavenPublication) {
+                from components.java
+                groupId project.group
+                artifactId "vcollections-${project.name}"
+                artifact tasks.sourceJar
+                version project.version
+            }
             gpr(MavenPublication) {
                 from components.java
                 groupId project.group
-                artifactId "vcollectinos-${project.name}"
+                artifactId "vcollections-${project.name}"
                 version project.version
             }
         }

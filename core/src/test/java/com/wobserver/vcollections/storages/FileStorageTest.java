@@ -20,11 +20,17 @@ public class FileStorageTest implements StorageTest<String, String, FileStorage<
 
 	@Override
 	public String toKey(String key) {
+		if (key == null) {
+			return "null";
+		}
 		return key;
 	}
 
 	@Override
 	public String toValue(String value) {
+		if (value == null) {
+			return "null";
+		}
 		return value;
 	}
 

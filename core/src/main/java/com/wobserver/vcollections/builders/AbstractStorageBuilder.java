@@ -3,6 +3,7 @@ package com.wobserver.vcollections.builders;
 import com.wobserver.vcollections.keygenerators.IAccessKeyGenerator;
 import com.wobserver.vcollections.keygenerators.IKeyGenerator;
 import com.wobserver.vcollections.storages.IStorage;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.validation.ConstraintViolationException;
@@ -39,6 +40,11 @@ public abstract class AbstractStorageBuilder extends AbstractBuilder implements 
 	 * @see <a href="https://stackoverflow.com/questions/25773567/recursive-merge-of-n-level-maps">source</a>
 	 */
 	static Map deepMerge(Map original, Map newMap) {
+		if (newMap == null) {
+			return original;
+		} else if (original == null) {
+			original = new HashMap();
+		}
 		for (Object key : newMap.keySet()) {
 			if (newMap.get(key) instanceof Map && original.get(key) instanceof Map) {
 				Map originalChild = (Map) original.get(key);

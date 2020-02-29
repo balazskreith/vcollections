@@ -1,7 +1,10 @@
 package com.wobserver.vcollections;
 
 import static org.junit.jupiter.api.Assertions.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -14,9 +17,12 @@ public interface ListTest<V, T extends List<V>> {
 	List<V> makeList(String... items);
 
 	V toItem(String item);
+
 	List<V> asArrayList(String... items);
+
 	String getValue(V value);
-	void setValue(V item, String value);
+
+	V setValue(V item, String value);
 
 	/***********************************************************************
 	 * Scenario: Focuses on projection functionality
@@ -232,12 +238,12 @@ public interface ListTest<V, T extends List<V>> {
 		List<V> list = this.makeList("value");
 
 		// When
-		V item = list.get(0);
-		setValue(item, null);
-		list.set(0, item);
+		V value = setValue(list.get(0), null);
+		list.set(0, value);
 
 		// Then
-		assertNull(getValue(list.get(0)));
+		V result = list.get(0);
+		assertEquals(value, result);
 		assertEquals(1, list.size());
 	}
 
@@ -531,8 +537,6 @@ public interface ListTest<V, T extends List<V>> {
 		assertEquals(0, list.size());
 		assertTrue(list.isEmpty());
 	}
-
-
 
 
 //	/*************************************************************************

@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 class VArrayListTest implements ListTest<String, VArrayList<Long, String>> {
@@ -27,7 +26,7 @@ class VArrayListTest implements ListTest<String, VArrayList<Long, String>> {
 		}
 		MemoryStorage<Long, String> storage = new MemoryStorage<>(new SequentialLongGenerator(), initialItems, maxCapacity);
 		return new VArrayList<Long, String>(storage, PrimitiveTypesMapperFactory.make(Long.class, Long.class));
-		
+
 	}
 
 
@@ -51,8 +50,9 @@ class VArrayListTest implements ListTest<String, VArrayList<Long, String>> {
 	}
 
 	@Override
-	public void setValue(String item, String value) {
+	public String setValue(String item, String value) {
 		item = value;
+		return item;
 	}
 
 	@Test
