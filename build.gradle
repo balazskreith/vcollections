@@ -18,7 +18,7 @@ allprojects {
     repositories {
         mavenCentral()
         jcenter()
-        maven { url 'https://jitpack.io' }
+//        maven { url 'https://jitpack.io' }
     }
 
     group = 'com.wobserver.vcollections'
@@ -36,7 +36,7 @@ allprojects {
     dependencies {
         testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
         testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
-        implementation 'com.github.wobserver:vcollections:' + project.version
+//        implementation 'com.github.wobserver:vcollections:0.2.1'
     }
 }
 subprojects {
