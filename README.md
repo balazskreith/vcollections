@@ -48,12 +48,12 @@ You can make a yaml, or json file with this parameter and provide a builder
 for this storage. 
 ```yaml
 storages:
-  - key: myFileStorargeProfileName
+  myFileStorargeProfileName:
     builder: FileStorageBuilder
-      configuration:
-        valueType: java.lang.String
-        keyType: java.lang.Long    
-        path: "temp/"
+    configuration:
+      valueType: java.lang.String
+      keyType: java.lang.Long    
+      path: "temp/"
 ```
 
 And to provide it:
@@ -63,7 +63,7 @@ storageProvider.addYamlFile(yourYamlFile);
 IStorage<Long, String> customers = storageProvider.get("myFileStorargeProfileName");
 ``` 
 
-The full capability of storage building is detailed [here]().
+The full capability of storage building is detailed [here](docs/Manual.md). 
 
 Storages can be virtualized too! Let's say you realize your storage is slow, 
 so you want to introduce some cache. You need to change the storage as follows:
@@ -74,19 +74,16 @@ IStorage<Long, String> subset = new MemoryStorage<>(new SequentialLongGenerator(
 IStorage<Long, String> storage = new CachedStorage(String.class, subset, superset);
 ```
 
-
-Note, you have not changed anything in the list construction.
-
-
 With virtualized collections you are able to configure a persistent 
 storage used for a collection used by your program without to change 
 the rest of the application.
 
-
-For further possibility please read gthe [Developers Manual](). 
+For further possibility please read gthe [Developers Manual](docs/Manual.md). 
 
 ## License
 
+Before you include this library into your production, 
+please read the [license](LICENSE.md).
 
 
 

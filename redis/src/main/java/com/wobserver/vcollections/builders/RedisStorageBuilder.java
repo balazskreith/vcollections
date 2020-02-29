@@ -12,8 +12,6 @@ import javax.validation.constraints.NotNull;
 public class RedisStorageBuilder extends AbstractStorageBuilder {
 
 	public static final String KEY_CONVERTER_CLASS_CONFIG_KEY = "keyConverter";
-	public static final String NULLKEY_CLASS_CONFIG_KEY = "nullKey";
-	public static final String NULLVALUE_CLASS_CONFIG_KEY = "nullValue";
 	public static final String MAPPER_CONFIGURATION_CONFIG_KEY = "mapper";
 	public static final String URI_CONFIGURATION_CONFIG_KEY = "URI";
 
@@ -26,22 +24,9 @@ public class RedisStorageBuilder extends AbstractStorageBuilder {
 	 */
 	public <K, V> IStorage<K, V> build() {
 		Config config = this.convertAndValidate(Config.class);
-		K nullKey;
-		V nullValue;
 		Function<Object, K> keyConverter;
 		RedisMapper<K, V> mapper = new RedisMapperBuilder().withConfiguration(config.mapper).build();
 		RedisStorage<K, V> result;
-		if (config.nullKey != null) {
-			nullKey = this.invoke(config.nullKey);
-		} else {
-			nullKey = this.invoke(mapper.getKeyType().getName());
-		}
-
-		if (config.nullValue != null) {
-			nullValue = this.invoke(config.nullValue);
-		} else {
-			nullValue = this.invoke(mapper.getValueType().getName());
-		}
 
 		if (config.keyConverter != null) {
 			keyConverter = this.invoke(config.keyConverter);
@@ -55,7 +40,7 @@ public class RedisStorageBuilder extends AbstractStorageBuilder {
 		}
 
 		RedisURI uri = uriBuilder.build();
-		result = new RedisStorage<>(uri, mapper, config.expirationInS, config.capacity, nullKey, nullValue, keyConverter);
+		result = new RedisStorage<>(uri, mapper, config.expirationInS, config.capacity, keyConverter);
 		return result;
 	}
 
@@ -68,30 +53,6 @@ public class RedisStorageBuilder extends AbstractStorageBuilder {
 	 */
 	public RedisStorageBuilder withKeyConverter(String className) {
 		this.configs.put(KEY_CONVERTER_CLASS_CONFIG_KEY, className);
-		return this;
-	}
-
-	/**
-	 * Sets the value will be used to indicate a null value as key in
-	 * {@link com.wobserver.vcollections.storages.RedisStorage}
-	 *
-	 * @param value the name of the class instantiated and used as a value
-	 * @return A {@link RedisStorageBuilder} to set options further
-	 */
-	public RedisStorageBuilder withNullKey(String value) {
-		this.configs.put(NULLKEY_CLASS_CONFIG_KEY, value);
-		return this;
-	}
-
-	/**
-	 * Sets the value will be used to indicate a null value as value in
-	 * {@link com.wobserver.vcollections.storages.RedisStorage}
-	 *
-	 * @param value the name of the class instantiated and used as a value
-	 * @return A {@link RedisStorageBuilder} to set options further
-	 */
-	public RedisStorageBuilder withNullValue(String value) {
-		this.configs.put(NULLVALUE_CLASS_CONFIG_KEY, value);
 		return this;
 	}
 
@@ -121,10 +82,6 @@ public class RedisStorageBuilder extends AbstractStorageBuilder {
 	public static class Config extends AbstractStorageBuilder.Config {
 
 		public String keyConverter;
-
-		public String nullKey;
-
-		public String nullValue;
 
 		@NotNull
 		public Map<String, Object> mapper;

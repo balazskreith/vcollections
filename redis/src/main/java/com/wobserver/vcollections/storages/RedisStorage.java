@@ -13,21 +13,14 @@ import java.util.function.Function;
 public class RedisStorage<K, V> implements IStorage<K, V>, IAccessKeyGenerator<K> {
 
 	private IKeyGenerator<K> keyGenerator;
-	private final int expirationInS;
 	private final long capacity;
-	private final K nullKey;
-	private final V nullValue;
 	private final Function<Object, K> keyConverter;
 	private final CapacityChecker<K> capacityChecker;
 	private final RedisConnection<K, V> connection;
-	private Function<K, V> getter;
 	private BiConsumer<K, V> setter;
 
-	public RedisStorage(RedisURI uri, RedisMapper<K, V> mapper, int expirationInS, long capacity, K nullKey, V nullValue, Function<Object, K> keyConverter) {
+	public RedisStorage(RedisURI uri, RedisMapper<K, V> mapper, int expirationInS, long capacity, Function<Object, K> keyConverter) {
 		this.capacity = capacity;
-		this.expirationInS = expirationInS;
-		this.nullKey = nullKey;
-		this.nullValue = nullValue;
 		this.keyConverter = keyConverter;
 		this.connection = new RedisConnection<>(uri, mapper);
 		this.capacityChecker = new CapacityChecker<>(this, capacity);
@@ -77,63 +70,31 @@ public class RedisStorage<K, V> implements IStorage<K, V>, IAccessKeyGenerator<K
 	@Override
 	public V read(Object keyObject) {
 		K key;
-		if (keyObject == null) {
-			key = this.nullKey;
-		} else {
-			key = this.keyConverter.apply(keyObject);
-		}
+		key = this.keyConverter.apply(keyObject);
 		V value = this.connection.sync().get(key);
-		if (this.nullValue.equals(value)) {
-			return null;
-		} else {
-			return value;
-		}
+		return value;
 	}
 
 	@Override
 	public void update(K key, V value) {
 		this.capacityChecker.checkForUpdate(key);
-
-		if (key == null) {
-			key = this.nullKey;
-		}
-		if (value == null) {
-			value = nullValue;
-		}
-		this.connection.sync().set(key, value);
+		this.setter.accept(key, value);
 	}
 
 	@Override
 	public boolean has(Object keyObject) {
-		K key;
-		if (keyObject == null) {
-			key = this.nullKey;
-		} else {
-			key = this.keyConverter.apply(keyObject);
-		}
+		K key = this.keyConverter.apply(keyObject);
 		return this.connection.sync().exists(key) == 1;
 	}
 
 	@Override
 	public void delete(Object keyObject) {
-		K key;
-		if (keyObject == null) {
-			key = this.nullKey;
-		} else {
-			key = this.keyConverter.apply(keyObject);
-		}
+		K key = this.keyConverter.apply(keyObject);
 		this.connection.sync().del(key);
 	}
 
 	@Override
 	public void swap(K key1, K key2) {
-		if (key1 == null) {
-			key1 = this.nullKey;
-		}
-		if (key2 == null) {
-			key2 = this.nullKey;
-		}
-
 		if (!this.has(key1) || !this.has(key2)) {
 			throw new KeyNotFoundException();
 		}
@@ -187,9 +148,6 @@ public class RedisStorage<K, V> implements IStorage<K, V>, IAccessKeyGenerator<K
 			}
 			K key = this.keys.poll();
 			V value = RedisStorage.this.read(key);
-			if (RedisStorage.this.nullKey.equals(key)) {
-				key = null;
-			}
 			return new AbstractMap.SimpleEntry<>(key, value);
 		}
 

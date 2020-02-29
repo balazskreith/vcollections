@@ -35,11 +35,17 @@ class RedisStorageTest implements StorageTest<String, String, RedisStorage<Strin
 
 	@Override
 	public String toKey(String key) {
+		if (key == null) {
+			return "null";
+		}
 		return key;
 	}
 
 	@Override
 	public String toValue(String value) {
+		if (value == null) {
+			return "null";
+		}
 		return value;
 	}
 
@@ -59,18 +65,12 @@ class RedisStorageTest implements StorageTest<String, String, RedisStorage<Strin
 				.withKeyType(String.class.getName())
 				.withValueType(String.class.getName())
 				.build();
-		String nullKey = "null";
-		String nullValue = "null";
 		RedisClient client = RedisClient.create(redisURI);
 		StatefulRedisConnection<String, String> commandConnection = client.connect(mapper);
 		RedisCommands<String, String> syncCommands = commandConnection.sync();
 		BiConsumer<String, String> setCommand = (key, value) -> {
-			if (key == null) {
-				key = nullKey;
-			}
-			if (value == null) {
-				value = nullValue;
-			}
+			key = toKey(key);
+			value = toValue(value);
 			syncCommands.set(key, value);
 		};
 		if (entries != null) {
@@ -103,8 +103,6 @@ class RedisStorageTest implements StorageTest<String, String, RedisStorage<Strin
 				mapper,
 				retentionInS,
 				maxSize,
-				nullKey,
-				nullValue,
 				Object::toString);
 
 		result.setKeyGenerator(new KeyGeneratorFactory().make(String.class));
