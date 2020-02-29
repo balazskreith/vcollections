@@ -1,0 +1,16 @@
+---
+storageProfiles:
+  simpleStorageProfile:
+    builder: MemoryStorageBuilder
+
+  simpleStorageProfile2:
+    builder: MemoryStorageBuilder
+
+  minimalConfigurationProfile:
+    builder: ChainedVStorageBuilder
+    configuration:
+      storages:
+        - using: simpleStorageProfile
+          configuration:
+            capacity: 10
+        - using: simpleStorageProfile2

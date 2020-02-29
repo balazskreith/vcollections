@@ -3,6 +3,7 @@ package com.wobserver.vcollections.builders;
 import com.wobserver.vcollections.keygenerators.IAccessKeyGenerator;
 import com.wobserver.vcollections.keygenerators.IKeyGenerator;
 import com.wobserver.vcollections.storages.IStorage;
+import java.util.List;
 import java.util.Map;
 import javax.validation.ConstraintViolationException;
 import javax.validation.constraints.Min;
@@ -31,6 +32,65 @@ public abstract class AbstractStorageBuilder extends AbstractBuilder implements 
 
 	private static Logger logger = LoggerFactory.getLogger(AbstractStorageBuilder.class);
 
+	/**
+	 * @param original the original map the merge place to
+	 * @param newMap   the newmap we merge to the original one
+	 * @return the original map extended by the newMap
+	 * @see <a href="https://stackoverflow.com/questions/25773567/recursive-merge-of-n-level-maps">source</a>
+	 */
+	static Map deepMerge(Map original, Map newMap) {
+		for (Object key : newMap.keySet()) {
+			if (newMap.get(key) instanceof Map && original.get(key) instanceof Map) {
+				Map originalChild = (Map) original.get(key);
+				Map newChild = (Map) newMap.get(key);
+				original.put(key, deepMerge(originalChild, newChild));
+			} else if (newMap.get(key) instanceof List && original.get(key) instanceof List) {
+				List originalChild = (List) original.get(key);
+				List newChild = (List) newMap.get(key);
+				for (Object each : newChild) {
+					if (!originalChild.contains(each)) {
+						originalChild.add(each);
+					}
+				}
+			} else {
+				original.put(key, newMap.get(key));
+			}
+		}
+		return original;
+	}
+
+	/**
+	 * If the storageprovider is set, then the builder can use profileKeys from there
+	 */
+	private StorageProfiles storageProfiles;
+
+	/**
+	 * Gets the storageprofiles
+	 *
+	 * @return
+	 */
+	protected StorageProfiles getStorageProfiles() {
+		return this.storageProfiles;
+	}
+
+	protected IStorageBuilder makeStorageBuilderFor(Map<String, Object> configurations) {
+		IStorageBuilder result = new StorageBuilder()
+				.withStorageProfiles(this.storageProfiles)
+				.withConfiguration(configurations);
+		return result;
+	}
+
+	/**
+	 * Sets up the profiles for building a storage
+	 *
+	 * @param storageProfiles the instantiated storageprofiles
+	 * @return
+	 */
+	@Override
+	public IStorageBuilder withStorageProfiles(StorageProfiles storageProfiles) {
+		this.storageProfiles = storageProfiles;
+		return this;
+	}
 
 	/**
 	 * Puts all configuration to the inside holder in the builder.
@@ -86,5 +146,10 @@ public abstract class AbstractStorageBuilder extends AbstractBuilder implements 
 		 * Configurations for a Keygenerator (default is null)
 		 */
 		public Map<String, Object> keyGenerator;
+
+		/**
+		 * define the profile we use for building the storage
+		 */
+		public String using = null;
 	}
 }

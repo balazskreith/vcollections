@@ -1,0 +1,8 @@
+---
+storageProfiles:
+  keyGeneratorProfile:
+    builder: MemoryStorageBuilder
+    configuration:
+      keyGenerator:
+        valueType: java.lang.Long
+        

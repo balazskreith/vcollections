@@ -1,6 +1,7 @@
 package com.wobserver.vcollections.storages;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wobserver.vcollections.keygenerators.IAccessKeyGenerator;
 import com.wobserver.vcollections.keygenerators.IKeyGenerator;
 import java.io.File;
 import java.io.IOException;
@@ -12,7 +13,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
-public class FileStorage<K, V> implements IStorage<K, V> {
+public class FileStorage<K, V> implements IStorage<K, V>, IAccessKeyGenerator<K> {
 
 	private long capacity;
 	private final String directory;
@@ -184,6 +185,16 @@ public class FileStorage<K, V> implements IStorage<K, V> {
 			return new UUID(0L, 0L).toString();
 		}
 		return key.toString();
+	}
+
+	@Override
+	public void setKeyGenerator(IKeyGenerator<K> value) {
+		this.keyGenerator = value;
+	}
+
+	@Override
+	public IKeyGenerator<K> getKeyGenerator() {
+		return this.keyGenerator;
 	}
 
 

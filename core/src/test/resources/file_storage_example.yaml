@@ -1,0 +1,29 @@
+---
+storageProfiles:
+  minimalConfigurationProfile:
+    builder: FileStorageBuilder
+    configuration:
+      path: temp/
+      valueType: java.lang.String
+      keyType: java.lang.Long
+  usingOtherConfigurationProfile:
+    using: minimalConfigurationProfile
+    configuration:
+      valueType: java.lang.Double
+  explicitKeyMapperProfile:
+    builder: FileStorageBuilder
+    configuration:
+      path: temp/
+      valueType: java.lang.String
+      keyMapper: com.wobserver.vcollections.builders.FileStorageBuilderTest$MyMapper
+  wrongConfigurationProfile:
+    builder: FileStorageBuilder
+    configuration:
+      path: temp/
+      valueType: java.lang.String
+      keyType: java.lang.Long
+      keyMapper: jcom.wobserver.vcollections.builders.FileStorageBuilderTest$MyMapper
+ 
+
+
+       

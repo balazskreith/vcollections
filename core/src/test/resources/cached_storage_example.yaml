@@ -1,0 +1,15 @@
+---
+storageProfiles:
+  subsetProfile:
+    builder: MemoryStorageBuilder
+    configuration:
+      capacity: 10
+
+  minimalConfigurationProfile:
+    builder: CachedStorageBuilder
+    configuration:
+      keyType: java.lang.Long
+      subset:
+        using: subsetProfile
+      superset:
+        builder: MemoryStorageBuilder

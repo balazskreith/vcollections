@@ -6,6 +6,7 @@ import io.lettuce.core.KeyScanCursor;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.ScanArgs;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -17,9 +18,10 @@ public class RedisStorage<K, V> implements IStorage<K, V>, IAccessKeyGenerator<K
 	private final K nullKey;
 	private final V nullValue;
 	private final Function<Object, K> keyConverter;
-	private final Runnable checkFull;
-	private final Consumer<K> checkFullForUpdate;
+	private final CapacityChecker<K> capacityChecker;
 	private final RedisConnection<K, V> connection;
+	private Function<K, V> getter;
+	private BiConsumer<K, V> setter;
 
 	public RedisStorage(RedisURI uri, RedisMapper<K, V> mapper, int expirationInS, long capacity, K nullKey, V nullValue, Function<Object, K> keyConverter) {
 		this.capacity = capacity;
@@ -28,23 +30,11 @@ public class RedisStorage<K, V> implements IStorage<K, V>, IAccessKeyGenerator<K
 		this.nullValue = nullValue;
 		this.keyConverter = keyConverter;
 		this.connection = new RedisConnection<>(uri, mapper);
-
-		if (this.capacity == NO_MAX_SIZE) { // In this case there is no point to check
-			this.checkFull = () -> {
-
-			};
-			this.checkFullForUpdate = key -> this.checkFull.run();
+		this.capacityChecker = new CapacityChecker<>(this, capacity);
+		if (0 < expirationInS) {
+			this.setter = (key, value) -> this.connection.sync().setex(key, expirationInS, value);
 		} else {
-			this.checkFull = () -> {
-				if (RedisStorage.this.isFull()) {
-					throw new OutOfSpaceException();
-				}
-			};
-			this.checkFullForUpdate = key -> {
-				if (!RedisStorage.this.has(key)) {
-					RedisStorage.this.checkFull.run();
-				}
-			};
+			this.setter = this.connection.sync()::set;
 		}
 	}
 
@@ -73,11 +63,11 @@ public class RedisStorage<K, V> implements IStorage<K, V>, IAccessKeyGenerator<K
 
 	@Override
 	public K create(V value) {
+		this.capacityChecker.checkForCreate();
+
 		if (this.keyGenerator == null) {
 			throw new UnsupportedOperationException("Create operation without keyGenerator is not supported.");
 		}
-
-		this.checkFull.run();
 
 		K key = this.keyGenerator.get();
 		this.update(key, value);
@@ -102,7 +92,8 @@ public class RedisStorage<K, V> implements IStorage<K, V>, IAccessKeyGenerator<K
 
 	@Override
 	public void update(K key, V value) {
-		this.checkFullForUpdate.accept(key);
+		this.capacityChecker.checkForUpdate(key);
+
 		if (key == null) {
 			key = this.nullKey;
 		}
@@ -175,30 +166,11 @@ public class RedisStorage<K, V> implements IStorage<K, V>, IAccessKeyGenerator<K
 		return this.keyGenerator;
 	}
 
-	private <T> T encodeNull(Object value, T nullValue) {
-		if (value == null) {
-			return nullValue;
-		} else {
-			return (T) value;
-		}
-	}
-
-	private <T> T decodeNull(Object value, T defaultValue) {
-		if (value == nullValue) {
-			return null;
-		} else {
-			return (T) value;
-		}
-	}
-
-	// TODO: this is not working now, because we need an implementaiton to the current client we use
 	private class RedisIterator implements Iterator<Map.Entry<K, V>> {
-		private int consumedKeys;
 		private KeyScanCursor<K> cursor;
 		private Queue<K> keys;
 
 		RedisIterator() {
-			this.consumedKeys = 0;
 			this.keys = null;
 			this.cursor = connection.sync().scan(ScanArgs.Builder.limit(50));
 			this.keys = new LinkedList<>(cursor.getKeys());

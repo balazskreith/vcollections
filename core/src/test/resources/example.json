@@ -1,0 +1,44 @@
+{
+  "storageProfiles": {
+    "memoryStorageProfile": {
+      "builder": "MemoryStorageBuilder",
+      "configuration": {
+        "capacity": -1
+      }
+    },
+    "fileStorageProfile": {
+      "builder": "FileStorageBuilder",
+      "configurtion": {
+        "keyType": "value",
+        "valueType": "value",
+        "keyMapper": "value"
+      }
+    },
+    "cachedStorageProfile": {
+      "builder": "CachedStorageBuilder",
+      "using": "fileStorageProfile", 
+      "configuration": {
+        "superset": {
+          "builder": "value"
+        },
+        "subset": {
+          "using": "profileName"
+        }
+      }
+    },
+    "chainStorageProfile": {
+      "builder": "ChainedStorageBuilder",
+      "storages": [
+        {
+          "builder": "MemoryStorageBuilder",
+          "configuration": {
+          
+          }
+        },
+        {
+          "using": "cachedStorageProfile"
+        }
+      ]
+    }
+  }
+}

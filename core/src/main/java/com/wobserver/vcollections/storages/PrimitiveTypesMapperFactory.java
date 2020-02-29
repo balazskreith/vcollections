@@ -10,6 +10,17 @@ import java.util.function.Function;
 public class PrimitiveTypesMapperFactory<TS, TR> {
 
 	private static Map<String, IMapper> mappers = makeMappers();
+	private static Set<String> primitiveTypes = Set.of(
+			Boolean.class.getName(),
+			String.class.getName(),
+			byte[].class.getName(),
+			char[].class.getName(),
+			Long.class.getName(),
+			Short.class.getName(),
+			Integer.class.getName(),
+			Float.class.getName(),
+			Double.class.getName()
+	);
 
 	public static<S, R> IMapper<S, R> makeMapper(Function<S, R>  encoder, Function<R, S> decoder) {
 		return new IMapper<S, R>() {
@@ -26,6 +37,15 @@ public class PrimitiveTypesMapperFactory<TS, TR> {
 			}
 		};
 	}
+
+	public static<T> boolean isPrimitiveType(Class<T> type) {
+		return isPrimitiveType(type.getName());
+	}
+
+	public static boolean isPrimitiveType(String typeName) {
+		return primitiveTypes.contains(typeName);
+	}
+	
 	
 	public static <TSS, TRS> IMapper<TSS, TRS> make(Class<TSS> sourceType, Class<TRS> resutType) {
 		return new PrimitiveTypesMapperFactory<TSS, TRS>(sourceType, resutType).make();

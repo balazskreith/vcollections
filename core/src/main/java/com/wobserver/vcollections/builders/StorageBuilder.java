@@ -1,8 +1,8 @@
 package com.wobserver.vcollections.builders;
 
 import com.wobserver.vcollections.storages.IStorage;
+import java.util.HashMap;
 import java.util.Map;
-import javax.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 public class StorageBuilder extends AbstractStorageBuilder implements IStorageBuilder {
 
 	private static Logger logger = LoggerFactory.getLogger(StorageBuilder.class);
+
 	/**
 	 * The configuration key to provide the class type of a {@link IStorageBuilder}.
 	 * Note: if the provided string does not contain dot (.), the
@@ -22,12 +23,11 @@ public class StorageBuilder extends AbstractStorageBuilder implements IStorageBu
 	 * The embedded configurations for the {@link IStorageBuilder}
 	 */
 	public static final String CONFIGURATION_CONFIG_KEY = "configuration";
-
 	/**
-	 * If the storageprovider is set, then the builder can use profileKeys from there
+	 * The using keyword for inheriting configurations
 	 */
-	private StorageProvider storageProvider;
-	
+	public static final String USING_PROFILE_CONFIG_KEY = "using";
+
 	/**
 	 * Constructs a {@link StorageBuilder}, with the embedded configuration.
 	 */
@@ -35,15 +35,6 @@ public class StorageBuilder extends AbstractStorageBuilder implements IStorageBu
 
 	}
 
-	/**
-	 * Sets 
-	 * @param storageProvider
-	 * @return
-	 */
-	public StorageBuilder withStorageProvider(StorageProvider storageProvider) {
-		this.storageProvider = storageProvider;
-		return this;
-	}
 
 	/**
 	 * Adds the provided configuration to the set of configuration to
@@ -54,7 +45,7 @@ public class StorageBuilder extends AbstractStorageBuilder implements IStorageBu
 	 * @return {@link this} to configure the builder further
 	 */
 	public IStorageBuilder withConfiguration(Object obj) {
-		return this.withConfiguration((Map<String, Object>) obj);
+		return super.withConfiguration((Map<String, Object>) obj);
 	}
 
 	/**
@@ -67,31 +58,58 @@ public class StorageBuilder extends AbstractStorageBuilder implements IStorageBu
 	@Override
 	public <K, V> IStorage<K, V> build() {
 		Config config = this.convertAndValidate(Config.class);
-		if (config.profile != null) {
-			if (this.storageProvider == null) {
-				throw new RuntimeException("No StorageProvider is defined the StorageBuilder can retrieve a profileKey from.");
-			}
-			return this.storageProvider.get(config.profile);
+		if (config.using != null) {
+			Config profileConfig = this.getConfigForProfile(config.using);
+			config = this.merge(config, profileConfig);
 		}
-		IStorageBuilder builder;
-		if (config.builder != null) {
-			if (config.builder.contains(".") == false) {
-				builder = this.invoke("com.wobserver.vcollections.builders." + config.builder);
-			} else {
-				builder = this.invoke(config.builder);
-			}
+		IStorageBuilder builder = this.getBuilder(config.builder);
+		if (config.configuration == null) {
+			return builder.build();
+		}
+		return builder
+				.withConfiguration(config.configuration)
+				.build();
+	}
 
-			if (config.configuration == null) {
-				return builder.build();
+	private Config merge(Config source, Config profile) {
+		if (source.builder != null) {
+			if (profile.builder != null && !source.builder.equals(profile.builder)) {
+				throw new InvalidConfigurationException("The Builders must match");
 			}
-			return builder
-					.withConfiguration(config.configuration)
-					.build();
+		} else if (profile.builder == null) {
+			throw new InvalidConfigurationException("Builder is obligated");
+		} else {
+			source.builder = profile.builder;
 		}
-		
-		// no profileKey, and no builder is set
-		throw new RuntimeException("There must be either a profileKey or a builder is set for building a storage");
-		
+
+		if (source.configuration == null) {
+			source.configuration = new HashMap<>();
+		}
+		source.configuration = deepMerge(profile.configuration, source.configuration);
+		return source;
+	}
+
+	private Config getConfigForProfile(String profile) {
+		StorageProfiles storageProfiles = this.getStorageProfiles();
+		if (storageProfiles == null) {
+			throw new InvalidConfigurationException("Cannot use a profile without a " + StorageProfiles.class.getName());
+		}
+		Map<String, Object> profileConfig = storageProfiles.getConfigurationFor(profile);
+		if (profileConfig == null) {
+			throw new InvalidConfigurationException("The dedicated profile " + profile + " does not exist in the given " + StorageProfiles.class.getName());
+		}
+		return this.convertAndValidate(Config.class, profileConfig);
+	}
+
+	private IStorageBuilder getBuilder(String builderType) {
+		IStorageBuilder result;
+		if (builderType.contains(".") == false) {
+			result = this.invoke("com.wobserver.vcollections.builders." + builderType);
+		} else {
+			result = this.invoke(builderType);
+		}
+		return result
+				.withStorageProfiles(this.getStorageProfiles());
 	}
 
 	/**
@@ -102,14 +120,15 @@ public class StorageBuilder extends AbstractStorageBuilder implements IStorageBu
 		 * The name of the builder class implements {@link IStorageBuilder} interface
 		 */
 		public String builder;
-		/**
-		 * The name of another builder
-		 */
-		public String profile;
 
 		/**
 		 * The embedded configuration
 		 */
 		public Map<String, Object> configuration;
+
+		/**
+		 * The used profile
+		 */
+		public String using;
 	}
 }

@@ -31,7 +31,7 @@ IStorage<Long, String> storage = new FileStorage(
   String.class, // type of values
   new ObjectMapper(), // mapper for values
   "temp/",  // path of directory key, values are stored
-  new KeyGeneratorFactory().make(Long.class),  // a generator of keys for create operation
+  new SequentialLongGenerator(),  // a generator of keys for create operation
   IStorage.NO_MAX_SIZE // indicate the capacity of this storage in a number of elemenets
 );
 ```

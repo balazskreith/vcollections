@@ -2,6 +2,7 @@ package com.wobserver.vcollections.builders;
 
 import com.wobserver.vcollections.keygenerators.IKeyGenerator;
 import java.util.Map;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import com.wobserver.vcollections.keygenerators.KeyGeneratorFactory;
 
@@ -9,41 +10,12 @@ import com.wobserver.vcollections.keygenerators.KeyGeneratorFactory;
  * Builds a {@link IKeyGenerator} with the provided configurations
  */
 public class KeyGeneratorBuilder extends AbstractBuilder {
-	/**
-	 * The common configuration class for validating the provided configuration.
-	 */
-	public static class Config {
-		/**
-		 * Either type of the key for which a built in {@link IKeyGenerator} exists
-		 * or a class of builder results an {@link IKeyGenerator}.
-		 */
-		@NotNull
-		public String klass;
-
-		/**
-		 * Defines if the generated keygenerator has to be tested
-		 * against the existing key the target storage has.
-		 * default: false
-		 */
-		public boolean storageTest = false;
-
-		/**
-		 * The minimal size of the generated keys
-		 */
-		public int minSize = 0;
-
-		/**
-		 * The maximal size of the generated keys.
-		 */
-		public int maxSize = 0;
-	}
-
+	
 	public static final String KEY_GENERATOR_CONFIG_KEY = "keyGenerator";
 	public static final String CLASS_CONFIG_KEY = "klass";
 	public static final String STORAGE_TEST_CONFIG_KEY = "storageTest";
 	public static final String MIN_KEY_SIZE_CONFIG_KEY = "minSize";
 	public static final String MAX_KEY_SIZE_CONFIG_KEY = "maxSize";
-	private static final String CONFIGURED_KEY_GENERATOR_CONFIG_KEY = "configuredKeyGenerator";
 	private KeyGeneratorFactory factory;
 	private boolean storageTest = false;
 
@@ -70,10 +42,7 @@ public class KeyGeneratorBuilder extends AbstractBuilder {
 	 * @return An {@link IKeyGenerator}.
 	 */
 	public <T> IKeyGenerator<T> build() {
-		IKeyGenerator<T> result = this.get(CONFIGURED_KEY_GENERATOR_CONFIG_KEY, obj -> (IKeyGenerator<T>) obj);
-		if (result != null) {
-			return result;
-		}
+		IKeyGenerator<T> result;
 		Config config = this.convertAndValidate(Config.class);
 		this.storageTest = config.storageTest;
 		result = this.factory.make(config.klass, config.minSize, config.maxSize);
@@ -92,5 +61,35 @@ public class KeyGeneratorBuilder extends AbstractBuilder {
 		return this.storageTest;
 	}
 
+	/**
+	 * The common configuration class for validating the provided configuration.
+	 */
+	public static class Config {
+		/**
+		 * Either type of the key for which a built in {@link IKeyGenerator} exists
+		 * or a class of builder results an {@link IKeyGenerator}.
+		 */
+		@NotNull
+		public String klass;
+
+		/**
+		 * Defines if the generated keygenerator has to be tested
+		 * against the existing key the target storage has.
+		 * default: false
+		 */
+		public boolean storageTest = false;
+
+		/**
+		 * The minimal size of the generated keys
+		 */
+		@Min(value = 0)
+		public int minSize = 0;
+
+		/**
+		 * The maximal size of the generated keys.
+		 */
+		@Min(value = 0)
+		public int maxSize = 0;
+	}
 
 }

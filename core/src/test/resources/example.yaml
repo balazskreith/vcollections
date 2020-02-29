@@ -1,35 +1,39 @@
-storages:
-  - key: memoryStorageExample
+---
+storageProfiles:
+  memoryStorageProfile:
     builder: MemoryStorageBuilder
-      configuration:
-        capacity: -1                 # optional, default: -1, means infinity
-  - key: memoryCacheExample
-    builder: CachedStorageBuilder
-      configuration:
-        superset: 
-          profileKey: memoryStorageExample
-        subset:
-          builder: LRUMemoryStorageBuilder
-            configuration:
-              capacity: 100
-              accessOrder: True
-        onCreate: False
-        onUpdate: False
-        onRead: False
-  - key: chainedStorageExample
-    builder: ChainedStorageBuilder
-      configuration:
-        storages:
-          - key: storage1
-            profile: memoryStorageExample
-          - key: storage2
-            builder: MemoryStorageBuilder
-            configuration:
-              capacity: -1
-  - key: fileStorageExample
+    configuration:
+      capacity: -1
+  fileStorageProfile:
     builder: FileStorageBuilder
-      configuration:
-        mapper: ObjectMapper  # optional, default is ....ObjectMapper
-        valueType: classNameForValue
-        keyMapper: Long    # if no point, then it searches in the SimpleMapperFactory for Strings
-  - key: 
+    configurtion:
+      keyType: value
+      valueType: value
+      keyMapper: value
+  cachedStorageProfile:
+    builder: CachedStorageBuilder
+    using: fileStorageProfile
+    configuration:
+      superset:
+        builder: FileStorageBuilder
+        configuration:
+          capacity: -1
+      subset:
+        using: profileName
+  chainStorageProfile:
+    builder: ChainedStorageBuilder
+    configuratoin:
+      storages:
+        - builder: MemoryStorageBuilder
+          configuration: 
+        - using: cachedStorageProfile
+        - builder: ClusteredStorageBuilder
+          configuration:
+            storages:
+              - using: profileName
+              - builder: name
+                configuration:
+                  option: value
+
+
+       

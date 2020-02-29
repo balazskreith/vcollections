@@ -1,11 +1,7 @@
-package com.wobserver.vcollections;
+package com.wobserver.vcollections.storages;
 
 import com.wobserver.vcollections.builders.RedisMapperBuilder;
 import com.wobserver.vcollections.keygenerators.KeyGeneratorFactory;
-import com.wobserver.vcollections.storages.IStorage;
-import com.wobserver.vcollections.storages.RedisMapper;
-import com.wobserver.vcollections.storages.RedisStorage;
-import com.wobserver.vcollections.storages.StorageTest;
 import io.lettuce.core.KeyScanCursor;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
@@ -26,12 +22,6 @@ class RedisStorageTest implements StorageTest<String, String, RedisStorage<Strin
 
 	private RedisServer redisServer;
 
-//	@BeforeAll
-//	public static void startRedis() throws IOException {
-//		redisServer = new RedisServer(redisPort);
-//		redisServer.start();
-//	}
-
 	@BeforeEach
 	public void startRedis() throws IOException {
 		redisServer = new RedisServer(redisPort);
@@ -42,29 +32,6 @@ class RedisStorageTest implements StorageTest<String, String, RedisStorage<Strin
 	public void stopRedis() {
 		redisServer.stop();
 	}
-
-//	@BeforeEach
-//	public void flushRedis() throws IOException {
-//		RedisURI redisURI = RedisURI.builder()
-//				.withHost("localhost")
-//				.withPort(redisPort)
-//				.withClientName("test")
-//				.build();
-//		RedisMapper<String, String> mapper = new RedisMapperBuilder()
-//				.withKeyType(String.class.getName())
-//				.withValueType(String.class.getName())
-//				.build();
-//		RedisClient client = RedisClient.create(redisURI);
-//		StatefulRedisConnection<String, String> commandConnection = client.connect(mapper);
-//		RedisCommands<String, String> syncCommands = commandConnection.sync();
-//		syncCommands.flushall();
-//	}
-//
-//	@AfterAll
-//	public static void stopRedis() {
-//		redisServer.stop();
-//	}
-
 
 	@Override
 	public String toKey(String key) {

@@ -15,6 +15,9 @@ public class CachedStorageBuilder<K, V> extends AbstractStorageBuilder implement
 	public static final String KEY_TYPE_CONFIG_KEY = "keyType";
 	public static final String SUPERSET_CONFIG_KEY = "superset";
 	public static final String SUBSET_CONFIG_KEY = "subset";
+	public static final String CACHE_ON_READ_CONFIG_KEY = "cacheOnRead";
+	public static final String CACHE_ON_CREATE_CONFIG_KEY = "cacheOnCreate";
+	public static final String CACHE_ON_UPDATE_CONFIG_KEY = "cacheOnUpdate";
 
 	/**
 	 * Builds a {@link CachedStorage} based on the previously provided configurations.
@@ -26,9 +29,11 @@ public class CachedStorageBuilder<K, V> extends AbstractStorageBuilder implement
 		Config config = this.convertAndValidate(Config.class);
 
 		Class keyType = this.getClassFor(config.keyType);
-		IStorage<K, V> superset = new StorageBuilder().withConfiguration(config.subset).build();
-		IStorage<K, V> subset = new StorageBuilder().withConfiguration(config.superset).build();
+		IStorage<K, V> superset = this.makeStorageBuilderFor(config.superset).build();
+		IStorage<K, V> subset = this.makeStorageBuilderFor(config.subset).build();
 		CachedStorage<K, V> result = new CachedStorage<>(keyType, superset, subset);
+
+		result.doCache(config.cacheOnCreate, config.cacheOnRead, config.cacheOnUpdate);
 		return result;
 	}
 
@@ -44,5 +49,11 @@ public class CachedStorageBuilder<K, V> extends AbstractStorageBuilder implement
 
 		@NotNull
 		public Map<String, Object> subset;
+
+		public boolean cacheOnCreate = false;
+
+		public boolean cacheOnRead = true;
+
+		public boolean cacheOnUpdate = false;
 	}
 }

@@ -1,122 +1,191 @@
 package com.wobserver.vcollections.builders;
 
 import static org.junit.jupiter.api.Assertions.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import org.junit.jupiter.api.Test;
 import com.wobserver.vcollections.storages.IStorage;
+import java.io.File;
+import java.util.Map;
+import javax.validation.ConstraintViolationException;
+import org.junit.jupiter.api.Test;
 
-class MemoryStorageBuilderTest extends AbstractBuilderTest {
+class MemoryStorageBuilderTest extends AbstractBuilderTester {
 
-	public static Map<String, Object> createConfig(String keyGenerator, Long capacity) {
-		return createConfig(keyGenerator, capacity, false, 0, 0);
-	}
+	private static final String RESOURCE_FILE_NAME = "memorybuilder_test_source.yaml";
+	private static final String DEFAULT_PROFILE_KEY = "defaultProfile";
+	private static final String ILLEGAL_CAPACITY_PROFILE_KEY = "illegalCapacityProfile";
+	private static final String VALID_CAPACITY_PROFILE_KEY = "validCapacityProfile";
+	private static final String NOT_VALID_PROPERTY_PROFILE_1_KEY = "notValidPropertyProfile1";
+	private static final String NOT_VALID_PROPERTY_PROFILE_2_KEY = "notValidPropertyProfile2";
+	private static final String USING_OTHER_PROFILE_KEY = "usingOtherProfile";
 
-	public static Map<String, Object> createConfig(String keyGenerator, Long capacity, boolean storageTest, int minSize, int maxSize) {
-		Map<String, Object> result = new HashMap<>();
-		if (capacity != null) {
-			result.put(MemoryStorageBuilder.CAPACITY_CONFIG_KEY, capacity);
-		}
-		if (keyGenerator != null) {
-			result.put(KeyGeneratorBuilder.KEY_GENERATOR_CONFIG_KEY,
-					Map.of(KeyGeneratorBuilder.CLASS_CONFIG_KEY, keyGenerator,
-							KeyGeneratorBuilder.STORAGE_TEST_CONFIG_KEY, storageTest,
-							KeyGeneratorBuilder.MIN_KEY_SIZE_CONFIG_KEY, minSize,
-							KeyGeneratorBuilder.MAX_KEY_SIZE_CONFIG_KEY, maxSize));
-		}
-		return result;
+	@Override
+	protected File getSourceFile() {
+		ClassLoader classLoader = getClass().getClassLoader();
+		return new File(classLoader.getResource(RESOURCE_FILE_NAME).getFile());
 	}
 
 	/**
-	 * <b>Given</b>: A well formatted Config for limited capacity memory storage, and for keygeneration
+	 * <b>Given</b>: A profile contains minimal explicit assignments for the parameters
+	 * used to configure the builder to build a storage
 	 *
-	 * <b>When</b>: a build method is called
+	 * <b>When</b>: A storage is built using the configuration
 	 *
-	 * <b>Then</b>: the result is a memory storage with the limited capacity
+	 * <b>Then</b>: No exception is thrown
+	 * <b>and</b> the storage is empty by default
+	 * <b>and</b> no entries in the storage
+	 * <b>and</b> has no limitation regarding to the capacity
 	 */
 	@Test
-	public void shouldBuildTheStorageWithFullConfigurations() {
+	public void shouldBuildStorageWithDefaultValues() {
 		// Given
-		Long capacity = 3L;
-		Map<String, Object> configuration = createConfig("java.util.UUID", capacity);
-		IStorageBuilder storageBuilder = new MemoryStorageBuilder();
+		IStorageBuilder builder = this
+				.withStorageProfile(DEFAULT_PROFILE_KEY)
+				.makeBuilder();
 
 		// When
-		IStorage<UUID, String> storage = storageBuilder
-				.withConfiguration(configuration)
-				.build();
+		IStorage<Long, String> storage = builder.build();
+
+		// Then
+		assertTrue(storage.isEmpty());
+		assertEquals(0L, storage.entries());
+		assertEquals(storage.capacity(), IStorage.NO_MAX_SIZE);
+	}
+
+	/**
+	 * <b>Given</b>: A profile contains illegal value for the capacity
+	 *
+	 * <b>When</b>: A storage is built using the configuration
+	 *
+	 * <b>Then</b>: Exception is thrown
+	 */
+	@Test
+	public void shouldThrowExceptionForInvalidProperty() {
+		// Given
+		IStorageBuilder builder = this
+				.withStorageProfile(ILLEGAL_CAPACITY_PROFILE_KEY)
+				.makeBuilder();
+
+		// When
+		Runnable action = () -> {
+			IStorage<Long, String> storage = builder.build();
+		};
+
+		// Then
+		assertThrows(ConstraintViolationException.class, action::run);
+	}
+
+	/**
+	 * <b>Given</b>: A profile typo mistake for a property name
+	 *
+	 * <b>When</b>: A storage is built using the configuration
+	 *
+	 * <b>Then</b>: Exception is thrown
+	 */
+	@Test
+	public void shouldThrowExceptionForInvalidProperty2() {
+		// Given
+		IStorageBuilder builder = this
+				.withStorageProfile(NOT_VALID_PROPERTY_PROFILE_1_KEY)
+				.makeBuilder();
+
+		// When
+		Runnable action = () -> {
+			IStorage<Long, String> storage = builder.build();
+		};
+
+		// Then
+		assertThrows(IllegalArgumentException.class, action::run);
+	}
+
+	/**
+	 * <b>Given</b>: A profile typo mistake for a property name
+	 *
+	 * <b>When</b>: A storage is built using the configuration
+	 *
+	 * <b>Then</b>: Exception is thrown
+	 */
+	@Test
+	public void shouldThrowExceptionForInvalidProperty3() {
+		// Given
+		IStorageBuilder builder = this
+				.withStorageProfile(NOT_VALID_PROPERTY_PROFILE_2_KEY)
+				.makeBuilder();
+
+		// When
+		Runnable action = () -> {
+			IStorage<Long, String> storage = builder.build();
+		};
+
+		// Then
+		assertThrows(IllegalArgumentException.class, action::run);
+	}
+
+	/**
+	 * <b>Given</b>: A profile contains illegal value for the capacity
+	 *
+	 * <b>When</b>: A storage is built using the configuration
+	 *
+	 * <b>Then</b>: Exception is thrown
+	 */
+	@Test
+	public void shouldValidateValueOfProperty() {
+		// Given
+		long capacity = 10L;
+		IStorageBuilder builder = this
+				.withStorageProfile(DEFAULT_PROFILE_KEY)
+				.with(capacity, StorageBuilder.CONFIGURATION_CONFIG_KEY, StorageBuilder.CAPACITY_CONFIG_KEY)
+				.makeBuilder();
+
+		// When
+		IStorage<Long, String> storage = builder.build();
 
 		// Then
 		assertEquals(capacity, storage.capacity());
-		assertNotNull(storage.create("value"));
 	}
 
 	/**
-	 * <b>Given</b>: A well formatted Config for limited capacity memory storage, without key generator
+	 * <b>Given</b>: A profile contains valid value for the capacity
 	 *
-	 * <b>When</b>: a build method is called
+	 * <b>When</b>: A storage is built using the configuration
 	 *
-	 * <b>Then</b>: the result is a memory storage with the limited capacity, but without key generator
+	 * <b>Then</b>: Exception is thrown
 	 */
 	@Test
-	public void shouldBuildTheStorageWithPartialConfigurations_1() {
+	public void shouldValidateValueOfPropert2y() {
 		// Given
-		Long capacity = 3L;
-		Map<String, Object> configuration = createConfig(null, capacity);
-		IStorageBuilder storageBuilder = new MemoryStorageBuilder();
+		IStorageBuilder builder = this
+				.withStorageProfile(VALID_CAPACITY_PROFILE_KEY)
+				.makeBuilder();
 
 		// When
-		IStorage<UUID, String> storage = storageBuilder
-				.withConfiguration(configuration)
-				.build();
+		IStorage<Long, String> storage = builder.build();
 
 		// Then
-		assertEquals(capacity, storage.capacity());
-		assertThrows(NullPointerException.class, () -> storage.create("value"));
+		Integer capacity = this.get(StorageBuilder.CONFIGURATION_CONFIG_KEY, StorageBuilder.CAPACITY_CONFIG_KEY);
+		assertEquals(capacity, storage.capacity().intValue());
 	}
 
 	/**
-	 * <b>Given</b>: A well formatted Config for key generator, without limitation
+	 * <b>Given</b>: A profile using another profile
 	 *
-	 * <b>When</b>: a build method is called
+	 * <b>When</b>: A storage is built using the configuration
 	 *
-	 * <b>Then</b>: the result is a memory storage without capacity, but with key generator
+	 * <b>Then</b>: Exception is thrown
 	 */
 	@Test
-	public void shouldBuildTheStorageWithPartialConfigurations_2() {
+	public void shouldInheritProperties() {
 		// Given
-		Map<String, Object> configuration = createConfig("java.util.UUID", null);
-		IStorageBuilder storageBuilder = new MemoryStorageBuilder();
+		IStorageBuilder builder = this
+				.withStorageProfile(USING_OTHER_PROFILE_KEY)
+				.makeBuilder();
 
 		// When
-		IStorage<UUID, String> storage = storageBuilder
-				.withConfiguration(configuration)
-				.build();
+		IStorage<Long, String> storage = builder.build();
 
 		// Then
-		assertEquals(IStorage.NO_MAX_SIZE, storage.capacity());
-		assertNotNull(storage.create("value"));
+		Integer capacity = (Integer) ((Map<String, Object>) this.getStorageProfiles()
+				.getConfigurationFor(VALID_CAPACITY_PROFILE_KEY)
+				.get(StorageBuilder.CONFIGURATION_CONFIG_KEY)).get(StorageBuilder.CAPACITY_CONFIG_KEY);
+		assertEquals(capacity, storage.capacity().intValue());
 	}
 
-	/**
-	 * <b>Given</b>: A created storagebuilder without any conffiguration
-	 *
-	 * <b>When</b>: a build method is called
-	 *
-	 * <b>Then</b>: the result is a memory storage is without capacity and key generator
-	 */
-	@Test
-	public void shouldBuildTheStorageWithoutConfigurations() {
-		// Given
-		IStorageBuilder storageBuilder = new MemoryStorageBuilder();
-
-		// When
-		IStorage<UUID, String> storage = storageBuilder
-				.build();
-
-		// Then
-		assertEquals(IStorage.NO_MAX_SIZE, storage.capacity());
-		assertThrows(NullPointerException.class, () -> storage.create("value"));
-	}
 }

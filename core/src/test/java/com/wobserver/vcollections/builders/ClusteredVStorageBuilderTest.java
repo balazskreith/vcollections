@@ -6,9 +6,9 @@ import com.wobserver.vcollections.storages.IStorage;
 import java.io.File;
 import org.junit.jupiter.api.Test;
 
-class CachedStorageBuilderTest extends AbstractBuilderTester {
+class ClusteredVStorageBuilderTest extends AbstractBuilderTester {
 
-	private static final String RESOURCE_FILE_NAME = "cached_storage_example.yaml";
+	private static final String RESOURCE_FILE_NAME = "clustered_vstorage_example.yaml";
 	private static final String MINIMAL_CONFIGURATION_PROFILE = "minimalConfigurationProfile";
 
 	@Override
@@ -43,4 +43,5 @@ class CachedStorageBuilderTest extends AbstractBuilderTester {
 		assertEquals(0L, storage.entries());
 		assertEquals(storage.capacity(), IStorage.NO_MAX_SIZE);
 	}
+
 }

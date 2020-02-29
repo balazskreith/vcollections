@@ -1,0 +1,14 @@
+---
+storageProfiles:
+  simpleStorageProfile:
+    builder: MemoryStorageBuilder
+
+  simpleStorageProfile2:
+    builder: MemoryStorageBuilder
+
+  minimalConfigurationProfile:
+    builder: ReplicatedVStorageBuilder
+    configuration:
+      storages:
+        - using: simpleStorageProfile
+        - using: simpleStorageProfile2

@@ -1,0 +1,22 @@
+---
+storageProfiles:
+  defaultProfile:
+    builder: MemoryStorageBuilder
+  illegalCapacityProfile:
+    builder: MemoryStorageBuilder
+    configuration:
+      capacity: -2
+  validCapacityProfile:
+    builder: MemoryStorageBuilder
+    configuration:
+      capacity: 10
+  notValidPropertyProfile1:
+    builder: MemoryStorageBuilder
+    configuration:
+      capacityTypoMistake: 10
+  notValidPropertyProfile2:
+    builder: MemoryStorageBuilder
+    configurationTypoMistake:
+      capacity: 10
+  usingOtherProfile:
+    using: validCapacityProfile

@@ -2,10 +2,10 @@ package com.wobserver.vcollections.builders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import javax.validation.*;
 import org.slf4j.Logger;
@@ -31,54 +31,13 @@ public abstract class AbstractBuilder {
 
 	private static Logger logger = LoggerFactory.getLogger(AbstractBuilder.class);
 
-	public static <TK, TV> Function<TV, TK> makeKeyExtractor(Class<TV> valueType, String keyFieldName) {
-		if (keyFieldName.length() < 1) {
-			return null;
-		}
-		Method[] methods = valueType.getMethods();
-		if (methods != null) {
-			final String methodName = "get" + Character.toUpperCase(keyFieldName.charAt(0)) + (keyFieldName.length() < 2 ? "" : keyFieldName.substring(1));
-			Optional<Method> findMethod = Arrays.asList(methods).stream().filter(method -> method.getName().equals(methodName)).findFirst();
-			if (findMethod.isPresent()) {
-				final Method keyMethod = findMethod.get();
-				return new Function<TV, TK>() {
-					@Override
-					public TK apply(TV value) {
-						try {
-							return (TK) keyMethod.invoke(value);
-						} catch (IllegalAccessException e) {
-							throw new RuntimeException(e);
-						} catch (InvocationTargetException e) {
-							throw new RuntimeException(e);
-						}
-					}
-				};
-			}
-		}
-		Field[] fields = valueType.getFields();
-		if (fields == null) {
-			return null;
-		}
-		Optional<Field> findField = Arrays.asList(fields).stream().filter(field -> field.getName().equals(keyFieldName)).findFirst();
-		if (findField.isPresent()) {
-			final Field keyField = findField.get();
-			return new Function<TV, TK>() {
-				@Override
-				public TK apply(TV value) {
-					try {
-						return (TK) keyField.get(value);
-					} catch (IllegalAccessException e) {
-						throw new RuntimeException(e);
-					}
-				}
-			};
-		}
-		return null;
-	}
-
 	private ObjectMapper mapper = new ObjectMapper();
 
 	protected Map<String, Object> configs = new HashMap<>();
+
+	protected <T> T convertAndValidate(Class<T> klass) {
+		return this.convertAndValidate(klass, this.configs);
+	}
 
 	/**
 	 * Converts the provided configuration to the type of object provided as a parameter, and
@@ -89,8 +48,8 @@ public abstract class AbstractBuilder {
 	 * @return An object of the desired type setup with values from the configuration.
 	 * @throws ConstraintViolationException if the validation fails during the conversion.
 	 */
-	protected <T> T convertAndValidate(Class<T> klass) {
-		T result = this.mapper.convertValue(this.configs, klass);
+	protected <T> T convertAndValidate(Class<T> klass, Map<String, Object> configs) {
+		T result = this.mapper.convertValue(configs, klass);
 		ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
 		Validator validator = factory.getValidator();
 		Set<ConstraintViolation<T>> violations = validator.validate(result);
@@ -111,6 +70,10 @@ public abstract class AbstractBuilder {
 			throw new ConstraintViolationException(violations);
 		}
 		return result;
+	}
+
+	public <T> T get(String key) {
+		return this.get(key, obj -> (T) obj);
 	}
 
 	/**
