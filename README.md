@@ -7,7 +7,27 @@ built in Java to store the corresponding data independently.
 
 ## Quick Start
 
-Let's say you want to work with a list type of collection in your program. 
+### Install and Run
+
+The packages for vcollections are stored in [jcenter](https://bintray.com/wobserver/vcollections/)
+To include it in your project:
+
+```
+<dependency>
+  <groupId>com.wobserver.vcollections</groupId>
+  <artifactId>vcollections-core</artifactId>
+  <version>0.2.2</version>
+  <type>pom</type>
+</dependency>
+```
+
+Or in Gradle
+
+```
+implementation 'com.wobserver.vcollections:vcollections-core:0.2.2'
+```
+
+After that you can create your own collections. In Java:
 
 ```java
 IStorage<Long, String> storage = new MemoryStorage<>(new SequentialLongGenerator(), null, IStorage.NO_MAX_SIZE);
@@ -21,6 +41,7 @@ and the collection separately, and the defined storage
 passed as a parameters to VArrayList, the virtualized 
 version of the ArrayList.
 
+### Using Custom Storage
 
 Now, let's assume you decided to save the content in file, instead of keeping it in the memory. 
 Then you need to change the storage as follows:
@@ -44,39 +65,47 @@ the path of the directory you want to save the file,
 a generator of unique keys for create operations, 
 and the capacity of your storage.
 
-You can make a yaml, or json file with this parameter and provide a builder 
-for this storage. 
-```yaml
-storages:
-  myFileStorargeProfileName:
-    builder: FileStorageBuilder
-    configuration:
-      valueType: java.lang.String
-      keyType: java.lang.Long    
-      path: "temp/"
-```
 
-And to provide it:
-```java
-StorageProvider storageProvider = new StorageProvider();
-storageProvider.addYamlFile(yourYamlFile);
-IStorage<Long, String> customers = storageProvider.get("myFileStorargeProfileName");
-``` 
-
-The full capability of storage building is detailed [here](docs/Manual.md). 
-
-Storages can be virtualized too! Let's say you realize your storage is slow, 
+A Storage can be virtualized too! Let's say you realize your storage is slow, 
 so you want to introduce some cache. You need to change the storage as follows:
 
 ```java
-IStorage<Long, String> superset = storageProvider.get("myFileStorargeProfileName");;
+IStorage<Long, String> superset = new FileStorage(...)
 IStorage<Long, String> subset = new MemoryStorage<>(new SequentialLongGenerator(), null, IStorage.NO_MAX_SIZE);;
-IStorage<Long, String> storage = new CachedStorage(String.class, subset, superset);
+IStorage<Long, String> storage = new CachedStorage(Long.class, subset, superset);
 ```
 
-With virtualized collections you are able to configure a persistent 
-storage used for a collection used by your program without to change 
-the rest of the application.
+
+### Configure externally
+
+You can make a yaml, or json file with this parameter and provide a builder 
+for this storage. 
+
+```yaml
+storageProfiles:
+  myCachedStorageProfile:
+    builder: CachedStorageBuilder
+    configuration:
+      superset:
+        builder: FileStorageBuilder
+        configuration:
+          valueType: java.lang.String
+          keyType: java.lang.Long    
+          path: "temp/"
+      subset:
+        builder: MemoryStorageBuilder
+        configuration:
+          capacity: 10
+```
+
+To use your configuration type:
+
+```java
+StorageProvider storageProvider = new StorageProvider();
+storageProvider.addYamlFile("myYamlFile");
+IStorage<Long, String> customers = storageProvider.get("myFileStorargeProfileName");
+``` 
+
 
 For further possibility please read gthe [Developers Manual](docs/Manual.md). 
 
