@@ -1,7 +1,11 @@
 package com.wobserver.vcollections.builders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wobserver.vcollections.storages.*;
+import com.wobserver.vcollections.storages.FileStorage;
+import com.wobserver.vcollections.storages.IMapper;
+import com.wobserver.vcollections.storages.IStorage;
+import com.wobserver.vcollections.storages.MemoryStorage;
+import com.wobserver.vcollections.storages.PrimitiveTypesMapperFactory;
 import java.io.IOException;
 import javax.validation.constraints.NotNull;
 
@@ -16,11 +20,25 @@ public class FileStorageBuilder extends AbstractStorageBuilder implements IStora
 	public static final String PATH_CONFIG_KEY = "path";
 	public static final String VALUE_MAPPER_TYPE_CONFIG_KEY = "valueMapperType";
 
+	@FunctionalInterface
+	public interface ValueTypeCollector {
+		PathCollector withValueType(String value);
+	}
+
+	@FunctionalInterface
+	public interface PathCollector {
+		FileStorageBuilder withPath(String value);
+	}
+
+	public static ValueTypeCollector make() {
+		return valueType -> path -> new FileStorageBuilder().withValueType(valueType).withPath(path);
+	}
+
 	/**
 	 * Constructs a {@link IStorageBuilder}.
 	 */
 	public FileStorageBuilder() {
-
+		
 	}
 
 	/**

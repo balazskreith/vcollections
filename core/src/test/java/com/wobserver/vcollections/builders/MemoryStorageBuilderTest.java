@@ -3,7 +3,6 @@ package com.wobserver.vcollections.builders;
 import static org.junit.jupiter.api.Assertions.*;
 import com.wobserver.vcollections.storages.IStorage;
 import java.io.File;
-import java.util.Map;
 import javax.validation.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 
@@ -38,8 +37,8 @@ class MemoryStorageBuilderTest extends AbstractBuilderTester {
 	public void shouldBuildStorageWithDefaultValues() {
 		// Given
 		IStorageBuilder builder = this
-				.withStorageProfile(DEFAULT_PROFILE_KEY)
-				.makeBuilder();
+				.getStorageProfiles()
+				.getStorageBuilderFor(DEFAULT_PROFILE_KEY);
 
 		// When
 		IStorage<Long, String> storage = builder.build();
@@ -61,8 +60,8 @@ class MemoryStorageBuilderTest extends AbstractBuilderTester {
 	public void shouldThrowExceptionForInvalidProperty() {
 		// Given
 		IStorageBuilder builder = this
-				.withStorageProfile(ILLEGAL_CAPACITY_PROFILE_KEY)
-				.makeBuilder();
+				.getStorageProfiles()
+				.getStorageBuilderFor(ILLEGAL_CAPACITY_PROFILE_KEY);
 
 		// When
 		Runnable action = () -> {
@@ -84,8 +83,8 @@ class MemoryStorageBuilderTest extends AbstractBuilderTester {
 	public void shouldThrowExceptionForInvalidProperty2() {
 		// Given
 		IStorageBuilder builder = this
-				.withStorageProfile(NOT_VALID_PROPERTY_PROFILE_1_KEY)
-				.makeBuilder();
+				.getStorageProfiles()
+				.getStorageBuilderFor(NOT_VALID_PROPERTY_PROFILE_1_KEY);
 
 		// When
 		Runnable action = () -> {
@@ -107,8 +106,8 @@ class MemoryStorageBuilderTest extends AbstractBuilderTester {
 	public void shouldThrowExceptionForInvalidProperty3() {
 		// Given
 		IStorageBuilder builder = this
-				.withStorageProfile(NOT_VALID_PROPERTY_PROFILE_2_KEY)
-				.makeBuilder();
+				.getStorageProfiles()
+				.getStorageBuilderFor(NOT_VALID_PROPERTY_PROFILE_2_KEY);
 
 		// When
 		Runnable action = () -> {
@@ -131,9 +130,9 @@ class MemoryStorageBuilderTest extends AbstractBuilderTester {
 		// Given
 		long capacity = 10L;
 		IStorageBuilder builder = this
-				.withStorageProfile(DEFAULT_PROFILE_KEY)
-				.with(capacity, StorageBuilder.CONFIGURATION_CONFIG_KEY, StorageBuilder.CAPACITY_CONFIG_KEY)
-				.makeBuilder();
+				.getStorageProfiles()
+				.getStorageBuilderFor(DEFAULT_PROFILE_KEY)
+				.withConfiguration(String.join(".", StorageBuilder.CONFIGURATION_CONFIG_KEY, StorageBuilder.CAPACITY_CONFIG_KEY), capacity);
 
 		// When
 		IStorage<Long, String> storage = builder.build();
@@ -150,17 +149,21 @@ class MemoryStorageBuilderTest extends AbstractBuilderTester {
 	 * <b>Then</b>: Exception is thrown
 	 */
 	@Test
-	public void shouldValidateValueOfPropert2y() {
+	public void shouldValidateValueOfProperty2() {
 		// Given
 		IStorageBuilder builder = this
-				.withStorageProfile(VALID_CAPACITY_PROFILE_KEY)
-				.makeBuilder();
+				.getStorageProfiles()
+				.getStorageBuilderFor(VALID_CAPACITY_PROFILE_KEY);
 
 		// When
 		IStorage<Long, String> storage = builder.build();
 
 		// Then
-		Integer capacity = this.get(StorageBuilder.CONFIGURATION_CONFIG_KEY, StorageBuilder.CAPACITY_CONFIG_KEY);
+		Integer capacity = (Integer) builder
+				.getConfiguration(String.join(".",
+						StorageBuilder.CONFIGURATION_CONFIG_KEY,
+						StorageBuilder.CAPACITY_CONFIG_KEY)
+				);
 		assertEquals(capacity, storage.capacity().intValue());
 	}
 
@@ -175,16 +178,18 @@ class MemoryStorageBuilderTest extends AbstractBuilderTester {
 	public void shouldInheritProperties() {
 		// Given
 		IStorageBuilder builder = this
-				.withStorageProfile(USING_OTHER_PROFILE_KEY)
-				.makeBuilder();
+				.getStorageProfiles()
+				.getStorageBuilderFor(USING_OTHER_PROFILE_KEY);
 
 		// When
 		IStorage<Long, String> storage = builder.build();
 
 		// Then
-		Integer capacity = (Integer) ((Map<String, Object>) this.getStorageProfiles()
-				.getConfigurationFor(VALID_CAPACITY_PROFILE_KEY)
-				.get(StorageBuilder.CONFIGURATION_CONFIG_KEY)).get(StorageBuilder.CAPACITY_CONFIG_KEY);
+		Integer capacity = (Integer) builder
+				.getConfiguration(String.join(".",
+						StorageBuilder.CONFIGURATION_CONFIG_KEY,
+						StorageBuilder.CAPACITY_CONFIG_KEY)
+				);
 		assertEquals(capacity, storage.capacity().intValue());
 	}
 

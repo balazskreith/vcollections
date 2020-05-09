@@ -35,17 +35,26 @@ public class StorageBuilder extends AbstractStorageBuilder implements IStorageBu
 
 	}
 
+	/**
+	 * Sets the builder of the Storage
+	 *
+	 * @param value
+	 * @return
+	 */
+	public IStorageBuilder withBuilder(String value) {
+		this.configs.put(BUILDER_CONFIG_KEY, value);
+		return this;
+	}
 
 	/**
-	 * Adds the provided configuration to the set of configuration to
-	 * generate a {@link IStorageBuilder}.
+	 * Assign a profile key to use it as a base value
 	 *
-	 * @param obj the object must be a type of {@link Map<String, Object>} contains
-	 *            the necessary configuration
-	 * @return {@link this} to configure the builder further
+	 * @param value
+	 * @return
 	 */
-	public IStorageBuilder withConfiguration(Object obj) {
-		return super.withConfiguration((Map<String, Object>) obj);
+	public IStorageBuilder usingProfile(String value) {
+		this.configs.put(USING_PROFILE_CONFIG_KEY, value);
+		return this;
 	}
 
 	/**
@@ -57,11 +66,8 @@ public class StorageBuilder extends AbstractStorageBuilder implements IStorageBu
 	 */
 	@Override
 	public <K, V> IStorage<K, V> build() {
-		Config config = this.convertAndValidate(Config.class);
-		if (config.using != null) {
-			Config profileConfig = this.getConfigForProfile(config.using);
-			config = this.merge(config, profileConfig);
-		}
+		Map<String, Object> configuration = this.buildConfigurations();
+		Config config = this.convertAndValidate(Config.class, configuration);
 		IStorageBuilder builder = this.getBuilder(config.builder);
 		if (config.configuration == null) {
 			return builder.build();
@@ -71,36 +77,47 @@ public class StorageBuilder extends AbstractStorageBuilder implements IStorageBu
 				.build();
 	}
 
-	private Config merge(Config source, Config profile) {
-		if (source.builder != null) {
-			if (profile.builder != null && !source.builder.equals(profile.builder)) {
-				throw new InvalidConfigurationException("The Builders must match");
-			}
-		} else if (profile.builder == null) {
-			throw new InvalidConfigurationException("Builder is obligated");
-		} else {
-			source.builder = profile.builder;
-		}
-
-		if (source.configuration == null) {
-			source.configuration = new HashMap<>();
-		}
-		source.configuration = deepMerge(profile.configuration, source.configuration);
-		return source;
+	@Override
+	protected Map<String, Object> navigate(String... path) {
+		// This was omitted, becasue of the decision, to give more possibilities in retrieving configurations.
+//		Map<String, Object> configuration = (Map<String, Object>) this.buildConfigurations().getOrDefault(CONFIGURATION_CONFIG_KEY, new HashMap<>());
+		Map<String, Object> configuration = (Map<String, Object>) this.buildConfigurations();
+		return this.navigate(configuration, path);
 	}
 
-	private Config getConfigForProfile(String profile) {
-		StorageProfiles storageProfiles = this.getStorageProfiles();
-		if (storageProfiles == null) {
-			throw new InvalidConfigurationException("Cannot use a profile without a " + StorageProfiles.class.getName());
-		}
-		Map<String, Object> profileConfig = storageProfiles.getConfigurationFor(profile);
-		if (profileConfig == null) {
-			throw new InvalidConfigurationException("The dedicated profile " + profile + " does not exist in the given " + StorageProfiles.class.getName());
-		}
-		return this.convertAndValidate(Config.class, profileConfig);
+	/**
+	 * Build the configuration map for this builder
+	 *
+	 * @return
+	 */
+	private Map<String, Object> buildConfigurations() {
+		return this.buildConfigurations(this.configs);
 	}
 
+	/**
+	 * Gets the configuration, in which it merges the profile backwards
+	 *
+	 * @param source the sourcemap, which will be exemined for profile key
+	 * @return the result map, which is merged using profile keys
+	 */
+	private Map<String, Object> buildConfigurations(Map<String, Object> source) {
+		if (source.get(USING_PROFILE_CONFIG_KEY) == null) {
+			return source;
+		}
+		Map<String, Object> actual = new HashMap<>();
+		actual.putAll(this.configs);
+		String profile = (String) actual.remove(USING_PROFILE_CONFIG_KEY);
+		Map<String, Object> profileConfiguration = this.getStorageProfiles().getConfigurationFor(profile);
+		Map<String, Object> result = AbstractStorageBuilder.deepMerge(profileConfiguration, actual);
+		return this.buildConfigurations(result);
+	}
+
+	/**
+	 * Gets a Builder class implements the {@link IStorageBuilder} for the class name
+	 *
+	 * @param builderType the name of the class.
+	 * @return
+	 */
 	private IStorageBuilder getBuilder(String builderType) {
 		IStorageBuilder result;
 		if (builderType.contains(".") == false) {

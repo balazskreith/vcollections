@@ -112,6 +112,81 @@ public abstract class AbstractStorageBuilder extends AbstractBuilder implements 
 	}
 
 	/**
+	 * Gets the actual configuration for the key.
+	 *
+	 * @param key the key of the configuration we want to retrieve.
+	 * @return
+	 */
+	@Override
+	public Object getConfiguration(String key) {
+		String[] path = key.split("\\.");
+		Map<String, Object> configs = navigate(path);
+		key = path[path.length - 1];
+		return configs.get(key);
+	}
+
+	/**
+	 * Adds the provided configuration to the set of configuration to
+	 * generate a {@link IStorageBuilder}.
+	 *
+	 * @param value the value we want to set
+	 * @param path  tha path to navigate the map to the configuration we really need to change.
+	 * @return {@link this} to configure the builder further
+	 */
+	public IStorageBuilder withConfiguration(Object value, String... path) {
+		Map<String, Object> actual = navigate(path);
+		String name = path[path.length - 1];
+		actual.put(name, value);
+		return this;
+	}
+
+	/**
+	 * Navigate to the map
+	 *
+	 * @param path the path. the last index has omitted in navigation
+	 * @return
+	 */
+	protected Map<String, Object> navigate(String... path) {
+		return this.navigate(this.configs, path);
+	}
+
+	/**
+	 * Navigate to a map within a source.
+	 *
+	 * @param source the source map
+	 * @param path   the path array
+	 * @return the return map.
+	 */
+	protected Map<String, Object> navigate(Map<String, Object> source, String... path) {
+		Map<String, Object> result = source;
+		int lastIndex = path.length - 1;
+		for (int i = 0; i < lastIndex; ++i) {
+			String node = path[i];
+			if (!result.containsKey(node)) {
+				result.put(node, new HashMap<>());
+			}
+			result = (Map<String, Object>) result.get(node);
+		}
+		return result;
+	}
+
+
+	/**
+	 * A convinient version of the {@code StorageProfiles#withConfiguration(Object, String[])} version.
+	 * It can be applied if the attribute name does not contain dot(.)
+	 *
+	 * @param name  the name of the attribute we want to change. if it is in an embedded map, use "." to navigate to it.
+	 *              for exanmple: configuration.capacty will navigate to the capacity attribute inside the configuration.
+	 * @param value the value we want to set
+	 * @return {@link this} to configure the builder further
+	 */
+	@Override
+	public IStorageBuilder withConfiguration(String name, Object value) {
+		String[] path = name.split("\\.");
+		return this.withConfiguration(value, path);
+	}
+
+	/**
 	 * Invoke this method to decorate the built {@link IStorage} with a keygenerator if that is provided
 	 * in the configuration.
 	 *

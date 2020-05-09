@@ -16,7 +16,7 @@ To include it in your project:
 <dependency>
   <groupId>com.wobserver.vcollections</groupId>
   <artifactId>vcollections-core</artifactId>
-  <version>0.2.2</version>
+  <version>0.2.3</version>
   <type>pom</type>
 </dependency>
 ```
@@ -24,7 +24,7 @@ To include it in your project:
 Or in Gradle
 
 ```
-implementation 'com.wobserver.vcollections:vcollections-core:0.2.2'
+implementation 'com.wobserver.vcollections:vcollections-core:0.2.3'
 ```
 
 After that you can create your own collections. In Java:
@@ -43,7 +43,7 @@ version of the ArrayList.
 
 ### Using Custom Storage
 
-Now, let's assume you decided to save the content in file, instead of keeping it in the memory. 
+Let's assume you decided to save contents in a file, instead of keeping it in the memory. 
 Then you need to change the storage as follows:
 
 ```java
@@ -101,9 +101,8 @@ storageProfiles:
 To use your configuration type:
 
 ```java
-StorageProvider storageProvider = new StorageProvider();
-storageProvider.addYamlFile("myYamlFile");
-IStorage<Long, String> customers = storageProvider.get("myFileStorargeProfileName");
+StorageProvider storageProvider = new StorageProvider().withYamlFile("myYamlFile");
+IStorage<Long, String> customers = storageProvider.getStorageFor("myFileStorargeProfileName");
 ``` 
 
 

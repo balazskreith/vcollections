@@ -1,10 +1,47 @@
 package com.wobserver.vcollections.storages;
 
-import java.util.*;
-import com.wobserver.vcollections.keygenerators.IKeyGenerator;
 import com.wobserver.vcollections.keygenerators.IAccessKeyGenerator;
+import com.wobserver.vcollections.keygenerators.IKeyGenerator;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class ReplicatedVStorage<K, V> implements IStorage<K, V>, IAccessKeyGenerator<K> {
+
+	public static <TK, TV> void synchronise(IStorage<TK, TV>... storages) {
+		Map<TK, IStorage<TK, TV>> keyToStorage = new HashMap<>();
+		for (int i = 0; i < storages.length; ++i) {
+			IStorage<TK, TV> storage = storages[i];
+			for (Iterator<Map.Entry<TK, TV>> it = storage.iterator(); it.hasNext(); ) {
+				Map.Entry<TK, TV> entry = it.next();
+				TK key = entry.getKey();
+				if (!keyToStorage.containsKey(key)) {
+					keyToStorage.put(key, storage);
+				}
+			}
+		}
+
+		for (Iterator<Map.Entry<TK, IStorage<TK, TV>>> it = keyToStorage.entrySet().iterator(); it.hasNext(); ) {
+			Map.Entry<TK, IStorage<TK, TV>> entry = it.next();
+			TK key = entry.getKey();
+			TV value = null;
+			IStorage<TK, TV> storage = entry.getValue();
+			for (IStorage<TK, TV> subject : storages) {
+				if (storage == subject) {
+					continue;
+				}
+				if (!subject.has(key)) {
+					if (value == null) {
+						value = storage.read(key);
+					}
+					subject.update(key, value);
+				}
+			}
+		}
+	}
 
 	private IKeyGenerator<K> keyGenerator;
 	private List<IStorage<K, V>> storages;

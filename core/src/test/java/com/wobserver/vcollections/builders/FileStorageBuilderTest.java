@@ -53,9 +53,9 @@ public class FileStorageBuilderTest extends AbstractBuilderTester {
 	public void shouldBuildStorageWithDefaultValues() {
 		// Given
 		IStorageBuilder builder = this
-				.withStorageProfile(MINIMAL_CONFIGURATION_PROFILE)
-				.with(tempDir.getAbsolutePath(), StorageBuilder.CONFIGURATION_CONFIG_KEY, FileStorageBuilder.PATH_CONFIG_KEY)
-				.makeBuilder();
+				.getStorageProfiles()
+				.getStorageBuilderFor(MINIMAL_CONFIGURATION_PROFILE)
+				.withConfiguration(String.join(".", StorageBuilder.CONFIGURATION_CONFIG_KEY, FileStorageBuilder.PATH_CONFIG_KEY), tempDir.getAbsolutePath());
 
 		// When
 		IStorage<Long, String> storage = builder.build();
@@ -81,9 +81,9 @@ public class FileStorageBuilderTest extends AbstractBuilderTester {
 	public void shouldBuildStorageUsingAnotherProfile() {
 		// Given
 		IStorageBuilder builder = this
-				.withStorageProfile(USING_OTHER_CONFIGURATION_PROFILE)
-				.with(tempDir.getAbsolutePath(), StorageBuilder.CONFIGURATION_CONFIG_KEY, FileStorageBuilder.PATH_CONFIG_KEY)
-				.makeBuilder();
+				.getStorageProfiles()
+				.getStorageBuilderFor(USING_OTHER_CONFIGURATION_PROFILE)
+				.withConfiguration(String.join(".", StorageBuilder.CONFIGURATION_CONFIG_KEY, FileStorageBuilder.PATH_CONFIG_KEY), tempDir.getAbsolutePath());
 
 		// When
 		IStorage<Long, Double> storage = builder.build();
@@ -109,9 +109,9 @@ public class FileStorageBuilderTest extends AbstractBuilderTester {
 	public void shouldBuildUsingExplicitKeyMapper() {
 		// Given
 		IStorageBuilder builder = this
-				.withStorageProfile(EXPLICIT_KEYMAPPER_CONFIGURATION_PROFILE)
-				.with(tempDir.getAbsolutePath(), StorageBuilder.CONFIGURATION_CONFIG_KEY, FileStorageBuilder.PATH_CONFIG_KEY)
-				.makeBuilder();
+				.getStorageProfiles()
+				.getStorageBuilderFor(EXPLICIT_KEYMAPPER_CONFIGURATION_PROFILE)
+				.withConfiguration(String.join(".", StorageBuilder.CONFIGURATION_CONFIG_KEY, FileStorageBuilder.PATH_CONFIG_KEY), tempDir.getAbsolutePath());
 
 		// When
 		IStorage<Long, String> storage = builder.build();
@@ -133,9 +133,10 @@ public class FileStorageBuilderTest extends AbstractBuilderTester {
 	public void shouldThrowException() {
 		// Given
 		IStorageBuilder builder = this
-				.withStorageProfile(WRONG_CONFIGURATION_PROFILE)
-				.with(tempDir.getAbsolutePath(), StorageBuilder.CONFIGURATION_CONFIG_KEY, FileStorageBuilder.PATH_CONFIG_KEY)
-				.makeBuilder();
+				.getStorageProfiles()
+				.getStorageBuilderFor(WRONG_CONFIGURATION_PROFILE)
+				.withConfiguration(String.join(".", StorageBuilder.CONFIGURATION_CONFIG_KEY, FileStorageBuilder.PATH_CONFIG_KEY), tempDir.getAbsolutePath());
+
 
 		// When
 		Runnable action = () -> {

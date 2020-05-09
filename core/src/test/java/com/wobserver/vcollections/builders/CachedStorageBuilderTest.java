@@ -32,8 +32,8 @@ class CachedStorageBuilderTest extends AbstractBuilderTester {
 	public void shouldBuildStorageWithDefaultValues() {
 		// Given
 		IStorageBuilder builder = this
-				.withStorageProfile(MINIMAL_CONFIGURATION_PROFILE)
-				.makeBuilder();
+				.getStorageProfiles()
+				.getStorageBuilderFor(MINIMAL_CONFIGURATION_PROFILE);
 
 		// When
 		IStorage<Long, String> storage = builder.build();

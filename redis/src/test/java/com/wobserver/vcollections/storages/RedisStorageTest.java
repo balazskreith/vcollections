@@ -26,6 +26,7 @@ class RedisStorageTest implements StorageTest<String, String, RedisStorage<Strin
 	public void startRedis() throws IOException {
 		redisServer = new RedisServer(redisPort);
 		redisServer.start();
+
 	}
 
 	@AfterEach

@@ -11,7 +11,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * The main class to provide storages based on a given configuration.
@@ -25,15 +28,12 @@ public class StorageProfiles {
 	 * build storages.
 	 */
 	public static final String STORAGE_PROFILES_CONFIG_KEY = "storageProfiles";
-	/**
-	 * The profile key for a specific type of storage
-	 */
-	public static final String PROFILE_CONFIG_KEY = "profile";
-	
+
 	private Map<String, Map<String, Object>> profiles = new HashMap<>();
 
 	/**
 	 * Gets storage based on profile key added as configuration.
+	 *
 	 * @param profile The key for the profile the storage configuration belongs to.
 	 * @return An {@link IStorage} storage for the given profile key
 	 */
@@ -43,6 +43,7 @@ public class StorageProfiles {
 
 	/**
 	 * Gets a {@link StorageBuilder} for the profile given as a parameter
+	 *
 	 * @param profile the name of the profile a {@link IStorageBuilder} will given for
 	 * @return An {@link IStorageBuilder} for the given profile
 	 */
@@ -52,11 +53,12 @@ public class StorageProfiles {
 			return null;
 		}
 		return this.getStorageBuilderFor(configurations);
-		
+
 	}
 
 	/**
 	 * Gets a {@link StorageBuilder} for the configuration given as a parameter
+	 *
 	 * @param configurations the configurations passed to the {@link StorageBuilder}.
 	 * @return An {@link IStorageBuilder} for the given configuration
 	 */
@@ -64,26 +66,31 @@ public class StorageProfiles {
 		if (configurations == null) {
 			return null;
 		}
-		IStorageBuilder builder = new StorageBuilder().withConfiguration(configurations);
+		IStorageBuilder builder = new StorageBuilder()
+				.withConfiguration(configurations)
+				.withStorageProfiles(this);
 		return builder;
 	}
 
 	/**
 	 * Builds a storage for the given profile
+	 *
 	 * @param profile the name of the profile we request the storage for
-	 * @param <K> the key type of the storage
-	 * @param <V> the value type of the storage
+	 * @param <K>     the key type of the storage
+	 * @param <V>     the value type of the storage
 	 * @return
 	 */
-	public<K, V> IStorage<K, V> buildStorageFor(String profile) {
+	public <K, V> IStorage<K, V> getStorageFor(String profile) {
 		IStorageBuilder builder = this.getStorageBuilderFor(profile);
 		if (builder == null) {
 			return null;
 		}
 		return builder.build();
 	}
+
 	/**
 	 * Adds a Map based configuration to process for
+	 *
 	 * @param configurations the configurations
 	 */
 	public void addYamlString(Map<String, Object> configurations) {
@@ -92,7 +99,33 @@ public class StorageProfiles {
 	}
 
 	/**
+	 * Adds profiles based on the filename given to this method
+	 *
+	 * @param path the path of the file we use to fetch profiles
+	 * @return this object {@link StorageProfiles}.
+	 * @throws IOException
+	 */
+	public StorageProfiles withYamlFile(String path) throws IOException {
+		this.addYamlFile(new File(path));
+		return this;
+	}
+
+	/**
+	 * Adds profiles based on the filename given to this method
+	 *
+	 * @param path the path of the file we use to fetch profiles
+	 * @return this object {@link StorageProfiles}.
+	 * @throws IOException
+	 */
+	public StorageProfiles withJsonFile(String path) throws IOException {
+		this.addJsonFile(new File(path));
+		return this;
+	}
+
+
+	/**
 	 * Add a json file contains a configuration to build the storage
+	 *
 	 * @param jsonFile the file pointing to the json file holding the configuration
 	 * @throws IOException when the an error occured during the reading or converting
 	 */
@@ -106,6 +139,7 @@ public class StorageProfiles {
 
 	/**
 	 * Add a json string contains a configuration to build the storage
+	 *
 	 * @param jsonString the string holding the json file holding the configuration
 	 * @throws IOException when the an error occured during the reading or converting
 	 */
@@ -119,6 +153,7 @@ public class StorageProfiles {
 
 	/**
 	 * Adds a yaml structured string to process configuration
+	 *
 	 * @param yaml a string structured as yaml
 	 * @throws IOException if the parsing of the yaml string is unsuccessful
 	 */
@@ -128,9 +163,10 @@ public class StorageProfiles {
 		Map<String, Object> input = mapper.readValue(yaml, Map.class);
 		this.evaluate(input);
 	}
-	
+
 	/**
 	 * Adds a yaml file to process as a configuration
+	 *
 	 * @param yamlFile the file name to process
 	 * @throws IOException if the parsing of the yaml string is unsuccessful
 	 */
@@ -156,7 +192,7 @@ public class StorageProfiles {
 		}
 		this.evaluate(storageProfiles);
 	}
-	
+
 	private void evaluate(Map<String, Object> storageProfiles) {
 		for (Map.Entry<String, Object> entry : storageProfiles.entrySet()) {
 			String profile = entry.getKey();

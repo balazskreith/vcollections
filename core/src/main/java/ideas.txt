@@ -51,3 +51,6 @@ VLinkedList<K, V>(IStorage<K, V>), but V has next, prev and key fields
 VLinkedNodesList<K, V>(IStorage<K, INode<K, V>> storage)
 
 LinkedList is messy, and need to be rewritten.
+
+StorageProfiles should be a builder too. Instead of doing addYamlFile, then new line addJSonFile, it should be:
+new StorageProfiles().withYamlFile(...).withJsonFile(...)
