@@ -1,10 +1,19 @@
 package com.wobserver.vcollections.builders;
 
 import com.mongodb.MongoClientURI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import javax.validation.constraints.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class MongoURIBuilder extends AbstractBuilder {
+
+	private static final Logger logger = LoggerFactory.getLogger(MongoURIBuilder.class);
 
 	public static final String USERNAME_CONFIG_KEY = "username";
 	public static final String PASSWORD_CONFIG_KEY = "password";
@@ -18,7 +27,15 @@ class MongoURIBuilder extends AbstractBuilder {
 	 */
 	public MongoClientURI build() {
 		Config config = this.convertAndValidate(Config.class);
-		String credential = String.join(":", config.username, config.password);
+		String credential = null;
+		if (config.username == null || config.username.equals("null")) {
+			logger.warn("username for mongodb is null");
+		} else if (config.password == null || config.password.equals("null")) {
+			logger.warn("password for mongodb is null");
+		} else {
+			credential = String.join(":", config.username, config.password);
+		}
+
 		List<String> servers = new ArrayList<>();
 		for (Map<String, Object> server : config.servers) {
 			MongoURIServerBuilder uriServerBuilder = new MongoURIServerBuilder();
@@ -37,14 +54,20 @@ class MongoURIBuilder extends AbstractBuilder {
 			}
 			options = String.join("&", list);
 		}
-		String uri = String.join("@", credential,
-				String.join(",", servers)
-		);
-
-		if (options != null) {
-			uri = String.join("?", uri, options);
+		String uri;
+		if (credential != null) {
+			uri = String.join("@", credential,
+					String.join(",", servers)
+			);
+		} else {
+			uri = String.join(",", servers);
 		}
 
+
+		if (options != null) {
+			uri = String.join("/?", uri, options);
+		}
+		System.out.println("mongodb://" + uri);
 		return new MongoClientURI("mongodb://" + uri);
 	}
 

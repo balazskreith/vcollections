@@ -155,7 +155,6 @@ public class MongoStorageBuilder extends AbstractStorageBuilder {
 		@NotNull
 		public String valueType;
 
-		@NotNull
 		public String swapperType;
 
 		public String keyFieldInDocument;
@@ -164,6 +163,6 @@ public class MongoStorageBuilder extends AbstractStorageBuilder {
 		public String keyFieldInValue;
 
 		@NotNull
-		Map<String, Object> connection;
+		public Map<String, Object> connection;
 	}
 }

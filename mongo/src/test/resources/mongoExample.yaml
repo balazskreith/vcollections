@@ -1,8 +1,8 @@
-storages:
-  - key: mongoExample
+storageProfiles:
+  mongoExample:
     builder: MongoStorageBuilder
     configuration:
-      swapperType: "BiConsumer<ValueType, ValueType> instance"   #optional, default: null
+      # swapperType: "BiConsumer<ValueType, ValueType> instance"   #optional, default: null
       valueType: java.lang.String
       keyFieldInValue: key
       keyFieldInDocument: _id               # optional, default: inherit by using the keyFieldInValue
@@ -11,8 +11,8 @@ storages:
         database: "my-database"
         maxRetries: 3                       # optional, default: 3
         URI:
-          username:
-          password: # optional
+          username: root
+          password: password # optional
           servers:
             - host: "localhost"             # optional, default: localhost
               port: 27017                   # optional, default: 27017
