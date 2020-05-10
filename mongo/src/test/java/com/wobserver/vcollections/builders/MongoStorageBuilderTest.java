@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.wobserver.vcollections.storages.IStorage;
 import java.io.File;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class MongoStorageBuilderTest extends AbstractBuilderTester {
@@ -35,7 +36,9 @@ public class MongoStorageBuilderTest extends AbstractBuilderTester {
 	 * <b>and</b> no entries in the storage
 	 * <b>and</b> has no limitation regarding to the capacity
 	 */
+
 	@Test
+	@Disabled(value = "Disabled due to the requirement of mongodb")
 	public void shouldBuildStorageWithDefaultValues() {
 		// Given
 		IStorageBuilder builder = this
