@@ -1,11 +1,6 @@
 package com.wobserver.vcollections.builders;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import com.wobserver.vcollections.storages.IStorage;
 import java.io.File;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
 
 public class MongoStorageBuilderTest extends AbstractBuilderTester {
 
@@ -37,21 +32,21 @@ public class MongoStorageBuilderTest extends AbstractBuilderTester {
 	 * <b>and</b> has no limitation regarding to the capacity
 	 */
 
-	@Test
-	@Disabled(value = "Disabled due to the requirement of mongodb")
-	public void shouldBuildStorageWithDefaultValues() {
-		// Given
-		IStorageBuilder builder = this
-				.getStorageProfiles()
-				.getStorageBuilderFor(CONFIGURATION_PROFILE);
-
-		// When
-		IStorage<Long, String> storage = builder.build();
-
-		// Then
-		assertTrue(storage.isEmpty());
-		assertEquals(0L, storage.entries());
-		assertEquals(storage.capacity(), IStorage.NO_MAX_SIZE);
-	}
+//	@Test
+//	@Disabled(value = "Disabled due to the requirement of mongodb")
+//	public void shouldBuildStorageWithDefaultValues() {
+//		// Given
+//		IStorageBuilder builder = this
+//				.getStorageProfiles()
+//				.getStorageBuilderFor(CONFIGURATION_PROFILE);
+//
+//		// When
+//		IStorage<Long, String> storage = builder.build();
+//
+//		// Then
+//		assertTrue(storage.isEmpty());
+//		assertEquals(0L, storage.entries());
+//		assertEquals(storage.capacity(), IStorage.NO_MAX_SIZE);
+//	}
 
 }
