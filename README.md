@@ -1,9 +1,9 @@
 # Virtualized Collections
 
 Virtualized collections decompose the representation 
-of a collection from the space it is stored. The main goal of 
-this project is to provide a general library for collection interfaces
-built in Java to store the corresponding data independently.
+of a collection from the allocated storage used to the values. The main goal of 
+the project is to provide a general library for collection interfaces
+built in Java to store data independent from technological stack.
 
 ## Quick Start
 

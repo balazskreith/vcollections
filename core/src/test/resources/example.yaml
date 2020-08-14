@@ -1,4 +1,27 @@
 ---
+vcollectionProfiles:
+  myMapProfile:
+    builder: MapBuilder
+    configuration:
+      storage:
+        using: memoryStorageProfile
+        configuration: something
+  myLinkedListProfile:
+    builder: LinkedListBuilder
+    configuration:
+      
+    storage:
+  myArayListProfile:
+    configuration:
+      
+      startIndex: 0
+    keyMapper:
+    metaStorage:
+      using: memoryStorageProfile
+    valueStorage:
+      using: memoryStorageProfile
+    
+
 storageProfiles:
   memoryStorageProfile:
     builder: MemoryStorageBuilder

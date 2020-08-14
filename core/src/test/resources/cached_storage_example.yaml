@@ -1,9 +1,8 @@
----
 storageProfiles:
   subsetProfile:
     builder: MemoryStorageBuilder
     configuration:
-      capacity: 10
+      capacity: "${MYVAR:1}"
 
   minimalConfigurationProfile:
     builder: CachedStorageBuilder
